@@ -100,7 +100,7 @@ false || false; // false
 We can do standard grouping of expression using `()`.
 
 ```rust
-var  average = ( min + max ) * 2;
+let  average = ( min + max ) * 2;
 ```
 ---
 ## Statements
@@ -119,8 +119,8 @@ print("Hello world");
 You declare a variable using the `let` keyword. You can either initialize it right away, or omit it. If you omit it, the variable value is default to nil.
 
 ```rust
-var newVariable = "abcd"; // "abcd"
-var newVariable; // nil
+let newVariable = "abcd"; // "abcd"
+let newVariable; // nil
 ```
 
 ## Control Flow
