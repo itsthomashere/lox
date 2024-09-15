@@ -33,7 +33,7 @@ By definition we will have these token with their respective character in the pr
     - BANG: "!"
     - ASSIGN: "="
     - LESS: "<"
-    - LESSTHAN: "<="
+    - LESSOREQUAL: "<="
     - GREATER: ">"
     - GREATERTHAN: ">="
     - EQUAL: "=="
