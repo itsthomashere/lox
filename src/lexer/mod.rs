@@ -33,141 +33,148 @@ impl<'a> Lexer<'a> {
 
     pub fn lex(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
-        while let Some(ch) = self.peek() {
-            let token = match ch {
-                '\n' => {
-                    self.next().unwrap();
-                    continue;
-                }
-                '\r' => {
-                    self.next().unwrap();
-                    continue;
-                }
-                '\t' => {
-                    self.next().unwrap();
-                    continue;
-                }
-                '\0' => {
-                    self.next().unwrap();
-                    continue;
-                }
-                ' ' => {
-                    self.next().unwrap();
-                    continue;
-                }
-                ':' => {
-                    self.next().unwrap();
-                    Token::Colon
-                }
-                ';' => {
-                    self.next().unwrap();
-                    Token::Semicolon
-                }
-                '+' => {
-                    self.next().unwrap();
-                    Token::Plus
-                }
-                '-' => {
-                    self.next().unwrap();
-                    Token::Minus
-                }
-                '*' => {
-                    self.next();
-                    Token::Asterisk
-                }
-                '/' => {
-                    self.next().unwrap();
-                    Token::Slash
-                }
-                '(' => {
-                    self.next().unwrap();
-                    Token::LParen
-                }
-                ')' => {
-                    self.next().unwrap();
-                    Token::RParen
-                }
-                '{' => {
-                    self.next().unwrap();
-                    Token::LBrace
-                }
-                '}' => {
-                    self.next().unwrap();
-                    Token::RBrace
-                }
-                '[' => {
-                    self.next().unwrap();
-                    Token::LBracket
-                }
-                ']' => {
-                    self.next().unwrap();
-                    Token::RBracket
-                }
-                '.' => {
-                    self.next().unwrap();
-                    Token::Dot
-                }
-                '!' => {
-                    self.next().unwrap();
-                    if self.consume_if(|c| c == '=') {
-                        Token::NotEqual
-                    } else {
-                        Token::Bang
-                    }
-                }
-                '=' => {
-                    self.next().unwrap();
-                    if self.consume_if(|c| c == '=') {
-                        Token::Equal
-                    } else {
-                        Token::Assign
-                    }
-                }
-                '<' => {
-                    self.next().unwrap();
-                    if self.consume_if(|c| c == '=') {
-                        Token::LessEqual
-                    } else {
-                        Token::Less
-                    }
-                }
-                '>' => {
-                    self.next().unwrap();
-                    if self.consume_if(|c| c == '=') {
-                        Token::GreaterEqual
-                    } else {
-                        Token::Greater
-                    }
-                }
-                '&' => {
-                    self.next().unwrap();
-                    if self.consume_if(|c| c == '&') {
-                        Token::And
-                    } else {
-                        Token::Unknown('&')
-                    }
-                }
-                '|' => {
-                    self.next().unwrap();
-                    if self.consume_if(|c| c == '|') {
-                        Token::Or
-                    } else {
-                        Token::Unknown('|')
-                    }
-                }
-                '"' => self.read_string(),
-                _ => {
-                    if ch.is_ascii_digit() {
-                        self.read_number()
-                    } else {
-                        self.read_identifier()
-                    }
-                }
-            };
-            tokens.push(token);
+        while let Some(&ch) = self.peek() {
+            let token = self.match_next_token(ch);
+            if token.is_none() {
+                continue;
+            }
+            tokens.push(token.unwrap());
         }
         tokens.push(Token::Eof);
         tokens
+    }
+
+    fn match_next_token(&mut self, ch: char) -> Option<Token> {
+        match ch {
+            '\n' => {
+                self.next().unwrap();
+                None
+            }
+            '\r' => {
+                self.next().unwrap();
+                None
+            }
+            '\t' => {
+                self.next().unwrap();
+                None
+            }
+            '\0' => {
+                self.next().unwrap();
+                None
+            }
+            ' ' => {
+                self.next().unwrap();
+                None
+            }
+            ':' => {
+                self.next().unwrap();
+                Some(Token::Colon)
+            }
+            ';' => {
+                self.next().unwrap();
+                Some(Token::Semicolon)
+            }
+            '+' => {
+                self.next().unwrap();
+                Some(Token::Plus)
+            }
+            '-' => {
+                self.next().unwrap();
+                Some(Token::Minus)
+            }
+            '*' => {
+                self.next();
+                Some(Token::Asterisk)
+            }
+            '/' => {
+                self.next().unwrap();
+                Some(Token::Slash)
+            }
+            '(' => {
+                self.next().unwrap();
+                Some(Token::LParen)
+            }
+            ')' => {
+                self.next().unwrap();
+                Some(Token::RParen)
+            }
+            '{' => {
+                self.next().unwrap();
+                Some(Token::LBrace)
+            }
+            '}' => {
+                self.next().unwrap();
+                Some(Token::RBrace)
+            }
+            '[' => {
+                self.next().unwrap();
+                Some(Token::LBracket)
+            }
+            ']' => {
+                self.next().unwrap();
+                Some(Token::RBracket)
+            }
+            '.' => {
+                self.next().unwrap();
+                Some(Token::Dot)
+            }
+            '!' => {
+                self.next().unwrap();
+                if self.consume_if(|c| c == '=') {
+                    Some(Token::NotEqual)
+                } else {
+                    Some(Token::Bang)
+                }
+            }
+            '=' => {
+                self.next().unwrap();
+                if self.consume_if(|c| c == '=') {
+                    Some(Token::Equal)
+                } else {
+                    Some(Token::Assign)
+                }
+            }
+            '<' => {
+                self.next().unwrap();
+                if self.consume_if(|c| c == '=') {
+                    Some(Token::LessEqual)
+                } else {
+                    Some(Token::Less)
+                }
+            }
+            '>' => {
+                self.next().unwrap();
+                if self.consume_if(|c| c == '=') {
+                    Some(Token::GreaterEqual)
+                } else {
+                    Some(Token::Greater)
+                }
+            }
+            '&' => {
+                self.next().unwrap();
+                if self.consume_if(|c| c == '&') {
+                    Some(Token::And)
+                } else {
+                    Some(Token::Unknown('&'))
+                }
+            }
+            '|' => {
+                self.next().unwrap();
+                if self.consume_if(|c| c == '|') {
+                    Some(Token::Or)
+                } else {
+                    Some(Token::Unknown('|'))
+                }
+            }
+            '"' => Some(self.read_string()),
+            _ => {
+                if ch.is_ascii_digit() {
+                    Some(self.read_number())
+                } else {
+                    Some(self.read_identifier())
+                }
+            }
+        }
     }
 
     fn read_number(&mut self) -> Token {
