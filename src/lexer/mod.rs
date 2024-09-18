@@ -134,9 +134,9 @@ impl<'a> Lexer<'a> {
                 '>' => {
                     self.next().unwrap();
                     if self.consume_if(|c| c == '=') {
-                        Token::Greater
-                    } else {
                         Token::GreaterEqual
+                    } else {
+                        Token::Greater
                     }
                 }
                 '&' => {
@@ -189,6 +189,7 @@ impl<'a> Lexer<'a> {
         Token::Identifier(identifier)
     }
     fn read_string(&mut self) -> Token {
+        self.next(); // consume the opening '"'
         let string: String = self.consume_while(|c| c != '"').into_iter().collect();
         match self.next() {
             Some(_) => Token::String(string),
@@ -214,9 +215,9 @@ impl<'a> Lexer<'a> {
         F: Fn(char) -> bool,
     {
         let mut chars: Vec<char> = Vec::default();
-        while let Some(&ch) = self.char_iter.peek() {
+        while let Some(&ch) = self.peek() {
             if f(ch) {
-                self.char_iter.next().unwrap();
+                self.next().unwrap();
                 chars.push(ch)
             } else {
                 break;
@@ -232,7 +233,7 @@ impl<'a> Lexer<'a> {
     {
         if let Some(&ch) = self.char_iter.peek() {
             if f(ch) {
-                self.char_iter.next().unwrap();
+                self.next().unwrap();
                 return true;
             } else {
                 return false;
@@ -255,7 +256,10 @@ impl BytePosition {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
+    use crate::token::Token;
+
+    use super::Lexer;
 
     #[test]
     fn test_let_lexing() {
@@ -263,5 +267,208 @@ mod tests {
             let x = 10.5;
             let y = 10;
         "#;
+        let expected = vec![
+            Token::Let,
+            Token::Identifier("x".to_string()),
+            Token::Assign,
+            Token::Number(10.5),
+            Token::Semicolon,
+            Token::Let,
+            Token::Identifier("y".to_string()),
+            Token::Assign,
+            Token::Number(10.0),
+            Token::Semicolon,
+            Token::Eof,
+        ];
+
+        let result = Lexer::new(input).lex();
+        assert_eq!(result.len(), expected.len());
+
+        for i in 0..result.len() {
+            assert_eq!(result[i], expected[i])
+        }
+    }
+
+    #[test]
+    fn test_keywords() {
+        let input = r#"
+            class Thomas;
+            if;
+            else;
+            for;
+            while;
+            super;
+            this;
+            let;
+            extends;
+            nil;
+            return;
+            fun;
+        "#;
+        let expected = [
+            Token::Class,
+            Token::Identifier("Thomas".to_string()),
+            Token::Semicolon,
+            Token::If,
+            Token::Semicolon,
+            Token::Else,
+            Token::Semicolon,
+            Token::For,
+            Token::Semicolon,
+            Token::While,
+            Token::Semicolon,
+            Token::Super,
+            Token::Semicolon,
+            Token::This,
+            Token::Semicolon,
+            Token::Let,
+            Token::Semicolon,
+            Token::Extends,
+            Token::Semicolon,
+            Token::Null,
+            Token::Semicolon,
+            Token::Return,
+            Token::Semicolon,
+            Token::Function,
+            Token::Semicolon,
+            Token::Eof,
+        ];
+        let result = Lexer::new(input).lex();
+        assert_eq!(
+            result.len(),
+            expected.len(),
+            "Expected len to be{}, got: {}",
+            expected.len(),
+            result.len()
+        );
+
+        for i in 0..result.len() {
+            assert_eq!(
+                expected[i], result[i],
+                "Expected token to be: {}, got: {}",
+                expected[i], result[i]
+            );
+        }
+    }
+
+    #[test]
+    fn test_delimiters() {
+        let input = r#"
+            (){}[].;=:+- */<>!
+        "#;
+        let result = Lexer::new(input).lex();
+        let expected: Vec<Token> = vec![
+            Token::LParen,
+            Token::RParen,
+            Token::LBrace,
+            Token::RBrace,
+            Token::LBracket,
+            Token::RBracket,
+            Token::Dot,
+            Token::Semicolon,
+            Token::Assign,
+            Token::Colon,
+            Token::Plus,
+            Token::Minus,
+            Token::Asterisk,
+            Token::Slash,
+            Token::Less,
+            Token::Greater,
+            Token::Bang,
+            Token::Eof,
+        ];
+
+        assert_eq!(
+            result.len(),
+            expected.len(),
+            "Expected len to be{}, got: {}",
+            expected.len(),
+            result.len()
+        );
+
+        for i in 0..result.len() {
+            assert_eq!(
+                expected[i], result[i],
+                "Expected token to be: {}, got: {}",
+                expected[i], result[i]
+            );
+        }
+    }
+
+    #[test]
+    fn test_string() {
+        let code = r#"
+        "thomas"
+        "thomas01"
+        "100502"
+        "thomas
+        "#;
+        let result = Lexer::new(code).lex();
+        let expected = [
+            Token::String("thomas".to_string()),
+            Token::String("thomas01".to_string()),
+            Token::String("100502".to_string()),
+            Token::NonClosingString,
+            Token::Eof,
+        ];
+        eprint!("{:?}", result);
+
+        assert_eq!(
+            result.len(),
+            expected.len(),
+            "Expected len to be{}, got: {}",
+            expected.len(),
+            result.len()
+        );
+
+        for i in 0..result.len() {
+            assert_eq!(
+                expected[i], result[i],
+                "Expected token to be: {}, got: {}",
+                expected[i], result[i]
+            );
+        }
+    }
+
+    #[test]
+    fn test_multiple_character_operation() {
+        let code = r#"
+            ==
+            != 
+            <=
+            >=
+            &&
+            ||
+            &
+            |
+        "#;
+        let result = Lexer::new(code).lex();
+        let expected = [
+            Token::Equal,
+            Token::NotEqual,
+            Token::LessEqual,
+            Token::GreaterEqual,
+            Token::And,
+            Token::Or,
+            Token::Unknown('&'),
+            Token::Unknown('|'),
+            Token::Eof,
+        ];
+
+        assert_eq!(
+            result.len(),
+            expected.len(),
+            "Expected len to be{}, got: {}",
+            expected.len(),
+            result.len()
+        );
+
+        for i in 0..result.len() {
+            assert_eq!(
+                expected[i], result[i],
+                "Expected token to be: {}, got: {}",
+                expected[i], result[i]
+            );
+        }
     }
 }
