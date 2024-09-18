@@ -224,10 +224,10 @@ class Cat {
 }
 ```
 
-We can inherit from other class using the `<` operator. We can also override the inherited class initialization.
+We can inherit from other class using the `extends` keyword. We can also override the inherited class initialization.
 
 ```rust
-class Dog < Cat {
+class Dog extends Cat {
     drink;
     init(age, name, drink) {
         super(age, name);

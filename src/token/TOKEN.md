@@ -14,6 +14,10 @@ By definition we will have these token with their respective character in the pr
     - ELSE: "else"
     - WHILE: "while"
     - NIL: "nil"
+    - Super: "super"
+    - Extends: "extends"
+    - For: "for"
+    - This: "this"
 - Delimiters
     - LEFTPAREN: "("
     - RIGHTPAREN: ")"
