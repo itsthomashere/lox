@@ -37,6 +37,8 @@ pub enum TokenKind {
     Or,           // ||
     Bang,         // !
     Dot,          // .
+    Semicolon,    // ;
+    Colon,        // :
     //Literals
     String,
     Number,
@@ -84,6 +86,8 @@ pub enum Token {
     Or,           // ||
     Bang,         // !
     Dot,          // .
+    Semicolon,    // ;
+    Colon,        // :
     //Literals
     String(String),
     Number(f64),
@@ -142,10 +146,12 @@ impl From<&Token> for TokenKind {
             Token::Eof => TokenKind::Eof,
             Token::Unknown(_) => TokenKind::Unknown,
             Token::NonClosingString => TokenKind::NonClosingString,
+            Token::Dot => TokenKind::Dot,
+            Token::Semicolon => TokenKind::Semicolon,
+            Token::Colon => TokenKind::Colon,
         }
     }
 }
-
 impl Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -187,6 +193,9 @@ impl Display for TokenKind {
             TokenKind::Eof => write!(f, "<eof>"),
             TokenKind::Unknown => write!(f, "<unknown>"),
             TokenKind::NonClosingString => write!(f, "<nonclosingstring>"),
+            TokenKind::Dot => write!(f, "."),
+            TokenKind::Semicolon => write!(f, ";"),
+            TokenKind::Colon => write!(f, ":"),
         }
     }
 }
