@@ -1,6 +1,9 @@
 use std::{collections::HashMap, iter::Peekable, str::Chars};
 
-use crate::token::Token;
+use crate::token::{
+    positions::{BytePosition, Span, WithSpan},
+    Token,
+};
 
 pub struct Lexer<'a> {
     char_iter: Peekable<Chars<'a>>,
@@ -41,6 +44,29 @@ impl<'a> Lexer<'a> {
             tokens.push(token.unwrap());
         }
         tokens.push(Token::Eof);
+        tokens
+    }
+
+    pub fn lex_with_context(&mut self) -> Vec<WithSpan<Token>> {
+        let mut tokens: Vec<WithSpan<Token>> = Vec::default();
+
+        loop {
+            if self.peek().is_none() {
+                break;
+            }
+            while let Some(&ch) = self.peek() {
+                let start_position = self.position.clone();
+                let token = self.match_next_token(ch);
+                if token.is_none() {
+                    continue;
+                }
+                tokens.push(WithSpan::new(
+                    token.unwrap(),
+                    Span::new(start_position.0, self.position.clone().0),
+                ));
+            }
+        }
+
         tokens
     }
 
@@ -248,16 +274,6 @@ impl<'a> Lexer<'a> {
         }
 
         false
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-#[repr(transparent)]
-pub struct BytePosition(pub u32);
-
-impl BytePosition {
-    fn shift(&mut self, ch: char) {
-        self.0 += ch.len_utf8() as u32
     }
 }
 
