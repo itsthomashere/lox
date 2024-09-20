@@ -26,6 +26,8 @@ impl<'a> Lexer<'a> {
             ("while", Token::While),
             ("fun", Token::Function),
             ("if", Token::If),
+            ("true", Token::True),
+            ("false", Token::False),
         ]);
         Self {
             char_iter: code.chars().peekable(),
@@ -476,6 +478,38 @@ mod tests {
             Token::Or,
             Token::Unknown('&'),
             Token::Unknown('|'),
+            Token::Eof,
+        ];
+
+        assert_eq!(
+            result.len(),
+            expected.len(),
+            "Expected len to be{}, got: {}",
+            expected.len(),
+            result.len()
+        );
+
+        for i in 0..result.len() {
+            assert_eq!(
+                expected[i], result[i],
+                "Expected token to be: {}, got: {}",
+                expected[i], result[i]
+            );
+        }
+    }
+
+    #[test]
+    fn test_boolean_types() {
+        let code = r#"
+            true;
+            false;
+        "#;
+        let result = Lexer::new(code).lex();
+        let expected = [
+            Token::True,
+            Token::Semicolon,
+            Token::False,
+            Token::Semicolon,
             Token::Eof,
         ];
 

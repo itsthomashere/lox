@@ -19,6 +19,8 @@ pub enum TokenKind {
     Null,     // nil
     Return,   // return
     Let,      // let
+    True,     // true
+    False,    // false
     // Delimiters
     LParen,       // (
     RParen,       // )
@@ -68,6 +70,8 @@ pub enum Token {
     Null,     // nil
     Return,   // return
     Let,      // let
+    True,     // true
+    False,    // false
     // Delimiters
     LParen,       // (
     RParen,       // )
@@ -153,6 +157,8 @@ impl From<&Token> for TokenKind {
             Token::Dot => TokenKind::Dot,
             Token::Semicolon => TokenKind::Semicolon,
             Token::Colon => TokenKind::Colon,
+            Token::True => TokenKind::True,
+            Token::False => TokenKind::False,
         }
     }
 }
@@ -200,6 +206,8 @@ impl Display for TokenKind {
             TokenKind::Dot => write!(f, "."),
             TokenKind::Semicolon => write!(f, ";"),
             TokenKind::Colon => write!(f, ":"),
+            TokenKind::True => write!(f, "true"),
+            TokenKind::False => write!(f, "false"),
         }
     }
 }
