@@ -2,6 +2,8 @@ pub mod positions;
 
 use std::fmt::Display;
 
+use positions::WithSpan;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenKind {
     // Reserverd keyword
@@ -199,5 +201,19 @@ impl Display for TokenKind {
             TokenKind::Semicolon => write!(f, ";"),
             TokenKind::Colon => write!(f, ":"),
         }
+    }
+}
+
+impl From<WithSpan<Token>> for TokenKind {
+    fn from(value: WithSpan<Token>) -> Self {
+        let token = &value.val;
+        token.into()
+    }
+}
+
+impl From<&WithSpan<Token>> for TokenKind {
+    fn from(value: &WithSpan<Token>) -> Self {
+        let token = &value.val;
+        token.into()
     }
 }

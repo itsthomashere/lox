@@ -24,7 +24,7 @@ impl Span {
         }
     }
 
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
             start: BytePosition(0),
             end: BytePosition(0),
@@ -66,7 +66,7 @@ impl<T> WithSpan<T> {
         Self { val, span }
     }
 
-    pub fn empty(val: T) -> Self {
+    pub const fn empty(val: T) -> Self {
         Self {
             val,
             span: Span::empty(),
