@@ -45,6 +45,7 @@ pub enum TokenKind {
     Dot,          // .
     Semicolon,    // ;
     Colon,        // :
+    Comma,        // ,
     //Literals
     String,
     Number,
@@ -96,6 +97,7 @@ pub enum Token {
     Dot,          // .
     Semicolon,    // ;
     Colon,        // :
+    Comma,        // ,
     //Literals
     String(String),
     Number(f64),
@@ -159,6 +161,7 @@ impl From<&Token> for TokenKind {
             Token::Colon => TokenKind::Colon,
             Token::True => TokenKind::True,
             Token::False => TokenKind::False,
+            Token::Comma => TokenKind::Comma,
         }
     }
 }
@@ -208,6 +211,7 @@ impl Display for TokenKind {
             TokenKind::Colon => write!(f, ":"),
             TokenKind::True => write!(f, "true"),
             TokenKind::False => write!(f, "false"),
+            TokenKind::Comma => write!(f, ","),
         }
     }
 }

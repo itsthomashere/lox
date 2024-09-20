@@ -147,6 +147,10 @@ impl<'a> Lexer<'a> {
                 self.next().unwrap();
                 Some(Token::Dot)
             }
+            ',' => {
+                self.next().unwrap();
+                Some(Token::Comma)
+            }
             '!' => {
                 self.next().unwrap();
                 if self.consume_if(|c| c == '=') {
@@ -503,12 +507,15 @@ mod tests {
         let code = r#"
             true;
             false;
+            ,;
         "#;
         let result = Lexer::new(code).lex();
         let expected = [
             Token::True,
             Token::Semicolon,
             Token::False,
+            Token::Semicolon,
+            Token::Comma,
             Token::Semicolon,
             Token::Eof,
         ];
