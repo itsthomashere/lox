@@ -1,13 +1,8 @@
-use std::{collections::btree_set::Union, iter::Peekable, vec::IntoIter};
+use std::{iter::Peekable, vec::IntoIter};
 
 pub mod ast;
 pub(crate) mod precedence;
-use ast::{
-    AssignExpression, BinaryExpression, BinaryOperator, CallExpression, Expression,
-    GroupingExpression, Identifier, IndexExpression, LetStatement, ListExpression,
-    LogicalExpression, LogicalOperator, PropertyExpression, Statement, UnaryExpression,
-    UnaryOperator,
-};
+use ast::{Expression, Identifier, LetStatement, Statement};
 use precedence::Precedence;
 
 use crate::{
