@@ -1,4 +1,4 @@
-use crate::token::positions::WithSpan;
+use crate::token::{positions::WithSpan, TokenKind};
 
 pub type Identifier = WithSpan<String>;
 
@@ -10,15 +10,14 @@ pub enum Statement {
     Block(BlockStatement),
     Function(FunctionStatement),
     Class(ClassStatement),
-    Property,
 }
 
 #[derive(Debug, Clone)]
 pub enum Expression {
     // Literal Expression
-    Identifier(WithSpan<String>),
-    Number(WithSpan<f64>),
-    String(WithSpan<String>),
+    Identifier(String),
+    Number(f64),
+    String(String),
     Boolean(bool),
     Nil,
     This,
@@ -31,23 +30,27 @@ pub enum Expression {
     // Logical
     Logical(LogicalExpression),
     // Binary
+    Binary(BinaryExpression),
     Assign(AssignExpression),
     // Call and indexing
     Call(CallExpression),
     Index(IndexExpression),
     Extends(ExtendsExpression),
+    Property(PropertyExpression),
+    Grouping(GroupingExpression),
+    List(ListExpression),
 }
 
 #[derive(Debug, Clone)]
 pub struct ClassStatement {
-    pub identifier: WithSpan<Identifier>,
+    pub identifier: Identifier,
     pub extends: Option<WithSpan<Expression>>,
     pub body: Box<WithSpan<Statement>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FunctionStatement {
-    pub identifier: WithSpan<Identifier>,
+    pub identifier: Identifier,
     pub parameters: Vec<WithSpan<Identifier>>,
     pub statement: Box<WithSpan<Statement>>,
 }
@@ -65,7 +68,22 @@ pub struct ReturnStatement {
 #[derive(Debug, Clone)]
 pub struct LetStatement {
     pub identifier: Identifier,
+    pub initializer: Option<WithSpan<Expression>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListExpression {
+    pub elements: Vec<WithSpan<Expression>>,
+}
+#[derive(Debug, Clone)]
+pub struct GroupingExpression {
     pub expression: Box<WithSpan<Expression>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PropertyExpression {
+    pub identifier: Identifier,
+    pub property: Identifier,
 }
 
 /// Extends expressions take this representation
@@ -80,7 +98,7 @@ pub struct LetStatement {
 /// * `identifier`: Inherited class Identifier
 #[derive(Debug, Clone)]
 pub struct ExtendsExpression {
-    pub identifier: WithSpan<Identifier>,
+    pub identifier: Identifier,
 }
 
 /// [TODO:description]
@@ -197,7 +215,7 @@ pub struct CallExpression {
 /// * `expression`: Expression as value assigned
 #[derive(Debug, Clone)]
 pub struct AssignExpression {
-    pub identifier: Box<WithSpan<Identifier>>,
+    pub identifier: Box<WithSpan<Expression>>,
     pub expression: Box<WithSpan<Expression>>,
 }
 
@@ -234,11 +252,11 @@ pub struct UnaryExpression {
 #[derive(Debug, Clone)]
 pub struct LogicalExpression {
     pub left: Box<WithSpan<Expression>>,
-    pub operator: Box<WithSpan<LogicalOperator>>,
+    pub operator: WithSpan<LogicalOperator>,
     pub right: Box<WithSpan<Expression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Binary Expressions take this representation
 /// ```text
 ///     (1 + 2 + 3) && (3 + 4)
@@ -255,7 +273,7 @@ pub struct LogicalExpression {
 /// * `right`: Right epxression
 pub struct BinaryExpression {
     pub left: Box<WithSpan<Expression>>,
-    pub operator: Box<WithSpan<BinaryOperator>>,
+    pub operator: WithSpan<BinaryOperator>,
     pub right: Box<WithSpan<Expression>>,
 }
 
@@ -283,4 +301,50 @@ pub enum BinaryOperator {
     LessEqual,
     Greater,
     GreaterEqual,
+}
+
+impl TryFrom<TokenKind> for UnaryOperator {
+    type Error = String;
+
+    fn try_from(value: TokenKind) -> Result<Self, Self::Error> {
+        match value {
+            TokenKind::Bang => Ok(Self::Bang),
+            TokenKind::Minus => Ok(Self::Minus),
+            _ => Err(format!("Could not convert {} to unary operator", value)),
+        }
+    }
+}
+
+impl TryFrom<TokenKind> for BinaryOperator {
+    type Error = String;
+
+    fn try_from(value: TokenKind) -> Result<Self, Self::Error> {
+        match value {
+            TokenKind::Plus => Ok(Self::Plus),
+            TokenKind::Minus => Ok(Self::Minus),
+            TokenKind::Asterisk => Ok(Self::Product),
+            TokenKind::Slash => Ok(Self::Divide),
+            TokenKind::Equal => Ok(Self::Equal),
+            TokenKind::NotEqual => Ok(Self::NotEqual),
+            TokenKind::LessEqual => Ok(Self::LessEqual),
+            TokenKind::Less => Ok(Self::Less),
+            TokenKind::Greater => Ok(Self::Greater),
+            TokenKind::GreaterEqual => Ok(Self::GreaterEqual),
+            _ => Err(format!("Could not convert {} to binary operator", {
+                value
+            })),
+        }
+    }
+}
+
+impl TryFrom<TokenKind> for LogicalOperator {
+    type Error = String;
+
+    fn try_from(value: TokenKind) -> Result<Self, Self::Error> {
+        match value {
+            TokenKind::And => Ok(Self::And),
+            TokenKind::Or => Ok(Self::Or),
+            _ => Err(format!("Could not convert {} to logical operator", value)),
+        }
+    }
 }
