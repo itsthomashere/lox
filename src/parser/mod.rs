@@ -189,7 +189,7 @@ impl Parser {
             TokenKind::Assign => self.parse_assign(left),               // parse assign
             TokenKind::LParen => self.parse_call(left),                 // parse call
             TokenKind::LBracket => self.parse_index(left),              // parse index
-            TokenKind::Dot => todo!(),                                  // parse parse property
+            TokenKind::Dot => self.parse_property(left),                // parse parse property
             _ => todo!(),
         }
     }

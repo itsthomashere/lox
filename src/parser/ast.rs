@@ -1,7 +1,6 @@
 use crate::token::{positions::WithSpan, TokenKind};
 
-pub type Identifier = WithSpan<String>;
-
+type Identifier = String;
 #[derive(Debug, Clone)]
 pub enum Statement {
     Let(LetStatement),
@@ -15,7 +14,7 @@ pub enum Statement {
 #[derive(Debug, Clone)]
 pub enum Expression {
     // Literal Expression
-    Identifier(String),
+    Identifier(WithSpan<Identifier>),
     Number(f64),
     String(String),
     Boolean(bool),
@@ -43,14 +42,14 @@ pub enum Expression {
 
 #[derive(Debug, Clone)]
 pub struct ClassStatement {
-    pub identifier: Identifier,
+    pub identifier: WithSpan<Identifier>,
     pub extends: Option<WithSpan<Expression>>,
     pub body: Box<WithSpan<Statement>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FunctionStatement {
-    pub identifier: Identifier,
+    pub identifier: WithSpan<Identifier>,
     pub parameters: Vec<WithSpan<Identifier>>,
     pub statement: Box<WithSpan<Statement>>,
 }
@@ -67,8 +66,9 @@ pub struct ReturnStatement {
 
 #[derive(Debug, Clone)]
 pub struct LetStatement {
-    pub identifier: Identifier,
-    pub initializer: Option<WithSpan<Expression>>,
+    pub identifier: Box<WithSpan<Expression>>,
+    pub initializer: Option<WithSpan<Expression>>, // This should only be none when we doesnt have
+                                                   // assign after identifier
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +98,7 @@ pub struct PropertyExpression {
 /// * `identifier`: Inherited class Identifier
 #[derive(Debug, Clone)]
 pub struct ExtendsExpression {
-    pub identifier: Identifier,
+    pub child: Identifier,
 }
 
 /// [TODO:description]
