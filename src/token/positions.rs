@@ -1,7 +1,4 @@
-use std::{
-    cmp::min,
-    fmt::{write, Display},
-};
+use std::{cmp::min, fmt::Display};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
@@ -15,8 +12,8 @@ impl BytePosition {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Span {
-    start: BytePosition,
-    end: BytePosition,
+    pub start: BytePosition,
+    pub end: BytePosition,
 }
 
 impl Span {
@@ -60,8 +57,8 @@ impl<T> From<WithSpan<T>> for Span {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WithSpan<T> {
-    val: T,
-    span: Span,
+    pub val: T,
+    pub span: Span,
 }
 
 impl<T> WithSpan<T> {
@@ -79,8 +76,8 @@ impl<T> WithSpan<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Diagnostic {
-    span: Span,
-    message: String,
+    pub span: Span,
+    pub message: String,
 }
 
 pub struct LineOffset {
@@ -104,7 +101,7 @@ impl LineOffset {
 
     pub fn line(&self, pos: BytePosition) -> usize {
         let offset = pos.0;
-        assert!(offset < self.len);
+        assert!(offset <= self.len);
 
         match self.offsets.binary_search(&offset) {
             Ok(line) => line + 1,

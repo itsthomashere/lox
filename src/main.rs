@@ -1,4 +1,5 @@
 use lexer::Lexer;
+use token::positions::LineOffset;
 
 mod lexer;
 mod parser;
@@ -12,7 +13,8 @@ fn main() {
     "#;
     let mut lexer = Lexer::new(code);
     let result = lexer.lex_with_context();
+    let offsests = LineOffset::new(code);
     for i in result {
-        println!("{}", i)
+        println!("Line:{}.\t{}", offsests.line(i.clone().span.end), i)
     }
 }

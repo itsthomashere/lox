@@ -50,22 +50,23 @@ impl<'a> Lexer<'a> {
     pub fn lex_with_context(&mut self) -> Vec<WithSpan<Token>> {
         let mut tokens: Vec<WithSpan<Token>> = Vec::default();
 
-        loop {
-            if self.peek().is_none() {
-                break;
+        while let Some(&ch) = self.peek() {
+            let start = self.position.clone();
+            let next_token = self.match_next_token(ch);
+            if next_token.is_none() {
+                continue;
             }
-            while let Some(&ch) = self.peek() {
-                let start_position = self.position.clone();
-                let token = self.match_next_token(ch);
-                if token.is_none() {
-                    continue;
-                }
-                tokens.push(WithSpan::new(
-                    token.unwrap(),
-                    Span::new(start_position.0, self.position.clone().0),
-                ));
-            }
+
+            tokens.push(WithSpan::new(
+                next_token.unwrap(),
+                Span::new(start.0, self.position.0),
+            ))
         }
+
+        tokens.push(WithSpan::new(
+            Token::Eof,
+            Span::new(self.position.0, self.position.0),
+        ));
 
         tokens
     }
