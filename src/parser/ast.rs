@@ -1,6 +1,5 @@
 use crate::token::{positions::WithSpan, TokenKind};
 
-type Identifier = String;
 #[derive(Debug, Clone)]
 pub enum Statement {
     Let(LetStatement),
@@ -14,7 +13,7 @@ pub enum Statement {
 #[derive(Debug, Clone)]
 pub enum Expression {
     // Literal Expression
-    Identifier(WithSpan<Identifier>),
+    Identifier(String),
     Number(f64),
     String(String),
     Boolean(bool),
@@ -42,15 +41,15 @@ pub enum Expression {
 
 #[derive(Debug, Clone)]
 pub struct ClassStatement {
-    pub identifier: WithSpan<Identifier>,
+    pub identifier: WithSpan<Expression>,
     pub extends: Option<WithSpan<Expression>>,
     pub body: Box<WithSpan<Statement>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FunctionStatement {
-    pub identifier: WithSpan<Identifier>,
-    pub parameters: Vec<WithSpan<Identifier>>,
+    pub identifier: WithSpan<Expression>,
+    pub parameters: Vec<WithSpan<Expression>>,
     pub statement: Box<WithSpan<Statement>>,
 }
 
@@ -66,9 +65,9 @@ pub struct ReturnStatement {
 
 #[derive(Debug, Clone)]
 pub struct LetStatement {
-    pub identifier: Box<WithSpan<Expression>>,
-    pub initializer: Option<WithSpan<Expression>>, // This should only be none when we doesnt have
-                                                   // assign after identifier
+    pub identifier: WithSpan<Expression>,
+    pub initializer: Option<Box<WithSpan<Expression>>>, // This should only be none when we doesnt have
+                                                        // assign after identifier
 }
 
 #[derive(Debug, Clone)]
@@ -82,8 +81,8 @@ pub struct GroupingExpression {
 
 #[derive(Debug, Clone)]
 pub struct PropertyExpression {
-    pub identifier: Identifier,
-    pub property: Identifier,
+    pub identifier: Box<WithSpan<Expression>>,
+    pub property: Box<WithSpan<Expression>>,
 }
 
 /// Extends expressions take this representation
@@ -98,7 +97,7 @@ pub struct PropertyExpression {
 /// * `identifier`: Inherited class Identifier
 #[derive(Debug, Clone)]
 pub struct ExtendsExpression {
-    pub child: Identifier,
+    pub child: Box<WithSpan<Expression>>,
 }
 
 /// [TODO:description]
