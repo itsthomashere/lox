@@ -2,7 +2,7 @@ use std::{iter::Peekable, vec::IntoIter};
 
 pub mod ast;
 pub(crate) mod precedence;
-use ast::{Expression, Identifier, LetStatement, Statement};
+use ast::{Expression, LetStatement, Statement};
 use precedence::Precedence;
 
 use crate::{
@@ -73,8 +73,11 @@ impl Parser {
         }
     }
 
-    fn check_next_kind(&mut self, kind: TokenKind) -> bool {
-        self.peek_kind() == kind
+    fn check_next_kind<F>(&mut self, f: F) -> bool
+    where
+        F: Fn(TokenKind) -> bool,
+    {
+        f(self.peek_kind())
     }
 
     fn errors(&mut self, message: &str, span: Span) {
@@ -106,26 +109,29 @@ impl Parser {
     }
 
     fn parse_let_statement(&mut self) -> Option<WithSpan<Statement>> {
-        let begin_span = self.expect(TokenKind::Let).ok()?.span;
-        let identifier = self.expect(TokenKind::Identifier).ok()?;
+        let begin_span = self.expect_next(TokenKind::Let).ok()?.span;
+        let identifier = self.expect_next(TokenKind::Identifier).ok()?;
         let value = match identifier.val {
             Token::Identifier(ident) => ident,
             _ => panic!("It should be an identifier, you fucked up"),
         };
 
-        let identifier = Identifier {
-            val: value,
-            span: identifier.span,
-        };
+        let identifier: WithSpan<Expression> =
+            WithSpan::new(Expression::Identifier(value), identifier.span);
 
-        self.expect(TokenKind::Assign).ok()?;
-        let initializer = self.parse_expression(Precedence::None);
+        if self.check_next_kind(|kind| kind == TokenKind::Assign) {
+            self.next().unwrap();
+            self.expect_peek(TokenKind::Semicolon)?;
+        }
+
+        let initializer = self.parse_expression(Precedence::None).map(Box::new);
+
         let let_statement = LetStatement {
             identifier,
             initializer,
         };
 
-        let end_span = self.expect(TokenKind::Semicolon).ok()?.span;
+        let end_span = self.expect_next(TokenKind::Semicolon).ok()?.span;
 
         Some(WithSpan::new(
             Statement::Let(let_statement),
@@ -146,7 +152,10 @@ impl Parser {
         while self.peek_kind() != TokenKind::Semicolon
             && precedence < Precedence::from(self.peek_kind())
         {
-            left_expr = self.parse_infix(left_expr)?;
+            match self.parse_infix(left_expr.clone()) {
+                Some(expression) => left_expr = expression,
+                None => return Some(left_expr),
+            };
         }
 
         Some(left_expr)
@@ -190,6 +199,7 @@ impl Parser {
             TokenKind::LParen => self.parse_call(left),                 // parse call
             TokenKind::LBracket => self.parse_index(left),              // parse index
             TokenKind::Dot => self.parse_property(left),                // parse parse property
+            TokenKind::Extends => self.parse_extends(left),
             _ => todo!(),
         }
     }
@@ -207,13 +217,15 @@ impl Parser {
             Token::Identifier(i) => Some(WithSpan::new(Expression::Identifier(i), token.span)),
             Token::True => Some(WithSpan::new(Expression::Boolean(true), token.span)),
             Token::False => Some(WithSpan::new(Expression::Boolean(false), token.span)),
-            Token::Super => todo!(),
+            Token::Super => self.parse_super(),
             _ => {
                 self.errors(&format!("Expected primary, got {}", token.val), token.span);
                 None
             }
         }
     }
+
+    // Prefix parsing functions
 
     fn parse_unary(&mut self) -> Option<WithSpan<Expression>> {
         todo!()
@@ -226,6 +238,12 @@ impl Parser {
     fn parse_list(&mut self) -> Option<WithSpan<Expression>> {
         todo!()
     }
+
+    fn parse_super(&mut self) -> Option<WithSpan<Expression>> {
+        todo!()
+    }
+
+    // infix parsing function
 
     fn parse_index(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
         todo!()
@@ -251,10 +269,14 @@ impl Parser {
         todo!()
     }
 
-    fn expect(&mut self, kind: TokenKind) -> Result<WithSpan<Token>, ()> {
-        let next_token = self.next().unwrap_or(EOF_TOKEN);
-        if Into::<TokenKind>::into(next_token.clone()) == kind {
-            Ok(next_token)
+    fn parse_extends(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
+        todo!()
+    }
+
+    fn expect_next(&mut self, kind: TokenKind) -> Result<WithSpan<Token>, ()> {
+        let next_token = &self.next().unwrap_or(EOF_TOKEN);
+        if Into::<TokenKind>::into(next_token) == kind {
+            Ok(next_token.clone())
         } else {
             self.errors(
                 &format!(
@@ -262,9 +284,26 @@ impl Parser {
                     kind,
                     Into::<TokenKind>::into(next_token.clone())
                 ),
-                next_token.span,
+                next_token.span.clone(),
             );
             Err(())
         }
+    }
+
+    fn expect_peek(&mut self, kind: TokenKind) -> Option<WithSpan<Token>> {
+        if !self.check_next_kind(|k| k == kind) {
+            let peek_token = &self.peek_token().unwrap_or(EOF_TOKEN);
+            self.errors(
+                &format!(
+                    "Expected {}, got {}",
+                    kind,
+                    Into::<TokenKind>::into(&peek_token.val)
+                ),
+                peek_token.span.clone(),
+            );
+            return Some(peek_token.clone());
+        }
+
+        None
     }
 }
