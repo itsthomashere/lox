@@ -221,175 +221,39 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Option<WithSpan<Expression>> {
-        let prefix_token = &self
-            .next()
-            .expect("This should only be called if the next token exists, you fucked up");
-        let prefix_kind: TokenKind = prefix_token.into();
-
-        let operator: Box<WithSpan<UnaryOperator>> = Box::new(WithSpan::new(
-            prefix_kind
-                .try_into()
-                .expect("Should only be called with valid unary operator token, you fucked up"),
-            prefix_token.span.clone(),
-        ));
-
-        let expresion = self.parse_expression(Precedence::Unary)?;
-        let span = Span::union(prefix_token, &expresion);
-
-        let unary = UnaryExpression {
-            operator,
-            expression: Box::new(expresion),
-        };
-
-        Some(WithSpan::new(Expression::Unary(unary), span))
+        todo!()
     }
 
     fn parse_grouping(&mut self) -> Option<WithSpan<Expression>> {
-        let lparen_token = &self
-            .next()
-            .expect("This should only be called if the next token exists, you fucked up");
-
-        let expression = self.parse_expression(Precedence::None)?;
-        let rparen_token = self.expect(TokenKind::RParen).ok()?;
-
-        let grouping = GroupingExpression {
-            expression: Box::new(expression),
-        };
-        let span = Span::union(lparen_token, &rparen_token);
-
-        Some(WithSpan::new(Expression::Grouping(grouping), span))
+        todo!()
     }
 
     fn parse_list(&mut self) -> Option<WithSpan<Expression>> {
-        let lbracket_token = &self
-            .next()
-            .expect("This should only be called if the next token exists, you fucked up");
-
-        let mut elements: Vec<WithSpan<Expression>> = Vec::default();
-
-        while self.peek_kind() != TokenKind::RBracket {
-            if self.peek_kind() == TokenKind::Comma {
-                self.next().unwrap();
-                continue;
-            }
-            elements.push(self.parse_expression(Precedence::None)?);
-        }
-
-        let rbracket_token = self.expect(TokenKind::RBracket).ok()?;
-        let list = ListExpression { elements };
-        let span = Span::union(lbracket_token, &rbracket_token);
-
-        Some(WithSpan::new(Expression::List(list), span))
+        todo!()
     }
 
     fn parse_index(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
-        let start_span = &left.span;
-
-        // advance to the left bracket token
-        let _ = &self
-            .next()
-            .expect("This should only be called if the next token exists, you fucked up");
-
-        let expression = self.parse_expression(Precedence::None)?;
-        let rbracket_token = self.expect(TokenKind::RBracket).ok()?;
-        let index = IndexExpression {
-            left: Box::new(left.clone()),
-            index: Box::new(expression),
-        };
-
-        let span = Span::union_span(start_span.clone(), rbracket_token.span);
-
-        Some(WithSpan::new(Expression::Index(index), span))
+        todo!()
     }
 
     fn parse_binary(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
-        let operator_token = self
-            .next()
-            .expect("This should only be called if the next token exists, you fucked up");
-        let operator: BinaryOperator = Into::<TokenKind>::into(&operator_token.val)
-            .try_into()
-            .expect("This should only be binary operator, you fucked up");
-        let operator = WithSpan::new(operator, operator_token.span);
-
-        let peek_token = self.peek_kind();
-        let expression = self.parse_expression(peek_token.into())?;
-
-        let span = Span::union(&left, &expression);
-        let binary = BinaryExpression {
-            left: Box::new(left),
-            operator,
-            right: Box::new(expression),
-        };
-
-        Some(WithSpan::new(Expression::Binary(binary), span))
+        todo!()
     }
 
     fn parse_logical(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
-        let operator_token = self
-            .next()
-            .expect("This should only be called if the next token exists, you fucked up");
-        let operator: LogicalOperator = Into::<TokenKind>::into(&operator_token.val)
-            .try_into()
-            .expect("This should only be logical operator, you fucked up");
-        let operator = WithSpan::new(operator, operator_token.span);
-
-        let peek_token = self.peek_kind();
-        let right = self.parse_expression(peek_token.into())?;
-
-        let span = Span::union(&left, &right);
-        let logical = LogicalExpression {
-            left: Box::new(left),
-            operator,
-            right: Box::new(right),
-        };
-
-        Some(WithSpan::new(Expression::Logical(logical), span))
+        todo!()
     }
 
     fn parse_assign(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
-        self.expect(TokenKind::Assign).ok()?;
-
-        let expression = self.parse_expression(Precedence::None)?;
-        let span = Span::union(&left, &expression);
-        let assign = AssignExpression {
-            identifier: Box::new(left),
-            expression: Box::new(expression),
-        };
-
-        Some(WithSpan::new(Expression::Assign(assign), span))
+        todo!()
     }
 
     fn parse_call(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
-        self.expect(TokenKind::LParen).ok()?;
-        let mut arguments: Vec<WithSpan<Expression>> = Vec::new();
-        while self.peek_kind() != TokenKind::RParen {
-            if self.peek_kind() == TokenKind::Comma {
-                self.next().unwrap();
-                continue;
-            }
-            arguments.push(self.parse_expression(Precedence::None)?)
-        }
-
-        let rparen_token = self.expect(TokenKind::RParen).ok()?;
-        let span = Span::union(&left, &rparen_token);
-        let call_expr = CallExpression {
-            function: Box::new(left),
-            arguments,
-        };
-
-        Some(WithSpan::new(Expression::Call(call_expr), span))
+        todo!()
     }
 
     fn parse_property(&mut self, left: WithSpan<Expression>) -> Option<WithSpan<Expression>> {
-        self.expect(TokenKind::Dot).ok()?;
-        let mut expression = self.parse_expression(Precedence::None)?;
-        let span = Span::union(&left, &expression);
-        let identifier = Self
-        let property = PropertyExpression {
-            identifier: Box::new(left),
-            property: Box::new(expression),
-        };
-        Some()
+        todo!()
     }
 
     fn expect(&mut self, kind: TokenKind) -> Result<WithSpan<Token>, ()> {
