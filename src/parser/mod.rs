@@ -5,9 +5,9 @@ pub mod ast;
 pub(crate) mod precedence;
 use ast::{
     AssignExpression, BinaryExpression, BinaryOperator, CallExpression, Expression,
-    ExtendsExpression, GroupingExpression, IndexExpression, LetStatement, ListExpression,
-    LogicalExpression, LogicalOperator, PropertyExpression, Statement, SuperExpression,
-    UnaryExpression, UnaryOperator,
+    ExtendsExpression, GroupingExpression, IfExpression, IndexExpression, LetStatement,
+    ListExpression, LogicalExpression, LogicalOperator, PropertyExpression, Statement,
+    SuperExpression, UnaryExpression, UnaryOperator, WhileExpression,
 };
 use precedence::Precedence;
 
@@ -198,6 +198,9 @@ impl Parser {
             TokenKind::LParen => self.parse_grouping(),               // parse grouping
             TokenKind::LBracket => self.parse_list(),                 // parse list
             TokenKind::Extends => self.parse_extends(),
+            TokenKind::If => self.parse_if_expresion(),
+            TokenKind::For => self.parse_for_expression(),
+            TokenKind::While => self.parse_while_expression(),
             _ => {
                 let peek = self.peek_token().unwrap_or(EOF_TOKEN);
                 self.errors(&format!("Unexpected {}", peek.val), peek.span);
@@ -251,11 +254,55 @@ impl Parser {
     // Prefix parsing functions
     //
     fn parse_if_expresion(&mut self) -> Option<WithSpan<Expression>> {
-        todo!()
+        let if_token = &self
+            .next()
+            .expect("Should only be called if the next token is if token");
+        self.consume_next_if(TokenKind::LParen)?; // consumes the next parentheses
+
+        let condition = Box::new(self.parse_expression(Precedence::None)?);
+
+        self.consume_next_if(TokenKind::RParen)?; // consumes the closing parentheses
+
+        let consequence = Box::new(self.parse_block_statement()?);
+        let mut span = Span::union(if_token, &consequence);
+
+        let mut alternative: Option<Box<WithSpan<Statement>>> = None;
+
+        if self.check_next_kind(|f| f == TokenKind::Else) {
+            self.next().unwrap();
+            let alter = self.parse_block_statement()?;
+            span = Span::union(if_token, &alter);
+            alternative = Some(Box::new(alter));
+        }
+
+        let if_exrp = IfExpression {
+            condition,
+            consequence,
+            alternative,
+        };
+
+        Some(WithSpan::new(Expression::If(if_exrp), span))
     }
 
     fn parse_while_expression(&mut self) -> Option<WithSpan<Expression>> {
-        todo!()
+        let while_token = &self
+            .next()
+            .expect("Should only be called if next token if else token");
+        self.consume_next_if(TokenKind::LParen)?;
+
+        let condition = Box::new(self.parse_expression(Precedence::None)?);
+
+        self.consume_next_if(TokenKind::RParen)?;
+
+        let consequence = Box::new(self.parse_block_statement()?);
+        let span = Span::union(while_token, &consequence);
+
+        let while_expr = WhileExpression {
+            condition,
+            consequence,
+        };
+
+        Some(WithSpan::new(Expression::While(while_expr), span))
     }
 
     fn parse_for_expression(&mut self) -> Option<WithSpan<Expression>> {
