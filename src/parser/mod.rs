@@ -110,7 +110,10 @@ impl Parser {
         match Into::<TokenKind>::into(token) {
             TokenKind::Let => self.parse_let_statement(),
             TokenKind::Return => self.parse_return_statement(),
-            _ => todo!(),
+            TokenKind::Function => self.parse_function_statement(),
+            TokenKind::Class => self.parse_class_statement(),
+            TokenKind::LBrace => self.parse_block_statement(),
+            _ => self.parse_expresion_statement(),
         }
     }
 
@@ -152,6 +155,18 @@ impl Parser {
     }
 
     fn parse_return_statement(&mut self) -> Option<WithSpan<Statement>> {
+        todo!()
+    }
+
+    fn parse_class_statement(&mut self) -> Option<WithSpan<Statement>> {
+        todo!()
+    }
+
+    fn parse_block_statement(&mut self) -> Option<WithSpan<Statement>> {
+        todo!()
+    }
+
+    fn parse_function_statement(&mut self) -> Option<WithSpan<Statement>> {
         todo!()
     }
 
@@ -234,6 +249,18 @@ impl Parser {
     }
 
     // Prefix parsing functions
+    //
+    fn parse_if_expresion(&mut self) -> Option<WithSpan<Expression>> {
+        todo!()
+    }
+
+    fn parse_while_expression(&mut self) -> Option<WithSpan<Expression>> {
+        todo!()
+    }
+
+    fn parse_for_expression(&mut self) -> Option<WithSpan<Expression>> {
+        todo!()
+    }
 
     fn parse_unary(&mut self) -> Option<WithSpan<Expression>> {
         let operator_token = &self
