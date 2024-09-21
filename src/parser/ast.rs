@@ -153,7 +153,7 @@ pub struct IfExpression {
 /// * `arguments`: A list of expression
 #[derive(Debug, Clone)]
 pub struct SuperExpression {
-    pub arguments: Vec<WithSpan<Expression>>,
+    pub identifier: Box<WithSpan<Expression>>,
 }
 
 /// An index expression takes this represtation
@@ -214,8 +214,8 @@ pub struct CallExpression {
 /// * `expression`: Expression as value assigned
 #[derive(Debug, Clone)]
 pub struct AssignExpression {
-    pub identifier: Box<WithSpan<Expression>>,
-    pub expression: Box<WithSpan<Expression>>,
+    pub left: Box<WithSpan<Expression>>,
+    pub right: Box<WithSpan<Expression>>,
 }
 
 /// Unary expressions take this representation
