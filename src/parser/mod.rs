@@ -166,7 +166,7 @@ impl Parser {
         let semicolon = self.expect_next(TokenKind::Semicolon)?;
 
         let span = Span::union(&expression, &semicolon);
-        let expr_statement = Statement::Expression(Box::new(expression));
+        let expr_statement = Statement::Expression(expression);
 
         Some(WithSpan::new(expr_statement, span))
     }
@@ -847,7 +847,6 @@ mod tests {
     fn test_function_with_extends() {
         let code = r#"
             class Thomas extends Jerry {
-
             };
         "#;
 
@@ -884,4 +883,144 @@ mod tests {
             self::panic!("Bad test")
         }
     }
+
+    #[test]
+    fn test_if_only() {
+        let code = r#"
+            if (a < b) {
+                return a;
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        let if_expression: IfExpression = match program[0].val {
+            Statement::Expression(ref if_expr) => match if_expr.val {
+                Expression::If(ref if_expr) => if_expr.clone(),
+                _ => self::panic!("Bad test"),
+            },
+            _ => self::panic!("Bad test"),
+        };
+
+        assert!(if_expression.alternative.is_none());
+        assert!(matches!(if_expression.condition.val, Expression::Binary(_)))
+    }
+
+    #[test]
+    fn test_if_else() {
+        let code = r#"
+            if (a < b) {
+                b - a;
+            } else {
+                a - b;
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        let if_expression: IfExpression = match program[0].val {
+            Statement::Expression(ref if_expr) => match if_expr.val {
+                Expression::If(ref if_expr) => if_expr.clone(),
+                _ => self::panic!("Bad test"),
+            },
+            _ => self::panic!("Bad test"),
+        };
+
+        assert!(if_expression.alternative.is_some());
+        assert!(matches!(
+            if_expression.consequence.val,
+            Statement::Block(block) if block.statements.len() == 1
+        ))
+    }
+    #[test]
+    fn test_while() {
+        let code = r#"
+            while (x < 10) {
+                x = x + 1;
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        let while_statement = match program[0].val {
+            Statement::Expression(ref whil) => match whil.val {
+                Expression::While(ref whil) => whil,
+                _ => self::panic!("Bad test"),
+            },
+            _ => self::panic!("Bad test"),
+        };
+
+        assert!(matches!(
+            while_statement.condition.val,
+            Expression::Binary(_)
+        ));
+        assert!(
+            matches!(&while_statement.consequence.val, Statement::Block(block)if block.statements.len() == 1 )
+        )
+    }
+    #[test]
+    fn test_identifier_expression() {}
+
+    #[test]
+    fn test_number_expresion() {}
+
+    #[test]
+    fn test_string_expression() {}
+
+    #[test]
+    fn test_boolean_expresion() {}
+
+    #[test]
+    fn test_nil_expression() {}
+
+    #[test]
+    fn test_logical_expression() {}
+
+    #[test]
+    fn test_binary_expression() {}
+
+    #[test]
+    fn test_call_expresion() {}
+
+    #[test]
+    fn test_assign_expresion() {}
+
+    #[test]
+    fn test_index_expresion() {}
+
+    #[test]
+    fn test_grouping_expresion() {}
+
+    #[test]
+    fn test_list_expresion() {}
+
+    #[test]
+    fn test_super_expresion() {}
+
+    #[test]
+    fn test_unary_expresion() {}
+
+    #[test]
+    fn test_this_expresion() {}
 }

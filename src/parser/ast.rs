@@ -4,7 +4,7 @@ use crate::token::{positions::WithSpan, TokenKind};
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
-    Expression(Box<WithSpan<Expression>>),
+    Expression(WithSpan<Expression>),
     Block(BlockStatement),
     Function(FunctionStatement),
     Class(ClassStatement),
