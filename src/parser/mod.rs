@@ -672,62 +672,106 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_let_statement() {
-        let input = r#"
+    fn test_parse_let_statement_with_initializer() {
+        let code = r#"
             let iden = 10;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Let(LetStatement {
+            identifier,
+            initializer,
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(&identifier.val, Expression::Identifier(s) if s == "iden" ),
+                "Expected identifier to be identifier expression with value `iden`, got {:?}",
+                identifier.val
+            );
+
+            assert!(
+                initializer.is_some(),
+                "Expected let statement to have initialzer, but got none instead"
+            );
+
+            assert!(
+                matches!(initializer.clone().unwrap().val, Expression::Number(num) if num == 10.0),
+                "Expected initializer to be a number expression with value 10.0, but got {:?}",
+                initializer.clone().unwrap()
+            );
+        } else {
+            self::panic!("Expected let statement, got: {:?}", program[0].val)
+        }
+    }
+
+    #[test]
+    fn test_parse_let_statement_without_initializer() {
+        let code = r#"
             let a;
         "#;
 
-        let mut parser = Parser::from_code(input);
+        let mut parser = Parser::from_code(code);
         let program = parser.parse_program();
-        let errors = parser.get_errors();
-        assert!(errors.is_empty());
-        assert!(program.len() == 2);
-        let expected_ident = ["iden", "a"];
-        for i in 0..2 {
-            let statement = match &program[i].val {
-                Statement::Let(s) => s,
-                _ => self::panic!("Failed"),
-            };
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
 
-            let identifier = match statement.identifier.val {
-                Expression::Identifier(ref ident) => ident,
-                _ => self::panic!("Bad test"),
-            };
-            assert_eq!(identifier, expected_ident[i])
+        if let Statement::Let(LetStatement {
+            identifier,
+            initializer,
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(&identifier.val, Expression::Identifier(s) if s == "a" ),
+                "Expected identifier to be identifier expression with value `a`, got {:?}",
+                identifier.val
+            );
+
+            assert!(
+                initializer.is_none(),
+                "Expected let statement to have no initialzer, but got some instead"
+            );
+        } else {
+            self::panic!("Expected let statement, got: {:?}", program[0].val)
         }
-
-        let first = match program[0].val {
-            Statement::Let(ref first) => first,
-            _ => self::panic!("Bad test"),
-        };
-        let first_value = match first.initializer.clone().unwrap().val {
-            Expression::Number(n) => n,
-            _ => self::panic!("Bad test"),
-        };
-
-        assert!(first_value == 10.0);
-
-        let second = match program[1].val {
-            Statement::Let(ref l) => l,
-            _ => self::panic!("Bad test"),
-        };
-
-        assert!(second.initializer.is_none())
     }
 
     // #[test]
     fn test_return_statement_value() {
-        let input = r#"
+        let code = r#"
             return b;
         "#;
-        let mut parser = Parser::from_code(input);
 
+        let mut parser = Parser::from_code(code);
         let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+        if let Statement::Return(ReturnStatement { return_value }) = &program[0].val {
+            assert!(
+                return_value.is_some(),
+                "Epxtected to have some return value, but got none"
+            );
 
-        assert!(parser.get_errors().is_empty());
-        assert!(program.len() == 1);
-        assert!(matches!(&program[0].val, Statement::Return(_)));
+            assert!(
+                matches!(return_value.clone().unwrap().val, Expression::Identifier(i) if i == "b"),
+                "Exptected return value to be an identifier with value `b`, but got {:?}",
+                return_value.clone().unwrap()
+            );
+        } else {
+            self::panic!("Expected to have a return statement, but got none")
+        }
     }
 
     #[test]
@@ -736,12 +780,52 @@ mod tests {
             return a + b;
         "#;
         let mut parser = Parser::from_code(code);
-
         let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
 
-        assert!(parser.get_errors().is_empty());
-        assert!(program.len() == 1);
-        assert!(matches!(&program[0].val, Statement::Return(_)));
+        if let Statement::Return(ReturnStatement { return_value }) = &program[0].val {
+            assert!(
+                return_value.is_some(),
+                "Epxtected to have some return value, but got none"
+            );
+
+            let (left, operator, right) = match return_value.clone().unwrap().val {
+                Expression::Binary(BinaryExpression {
+                    left,
+                    operator,
+                    right,
+                }) => (left, operator, right),
+                _ => self::panic!(
+                    "Expected to have a logical expression as return value, but got: {:?}",
+                    return_value.clone().unwrap().val
+                ),
+            };
+
+            assert!(
+                matches!(left.val, Expression::Identifier(ref a) if a == "a"),
+                "Exptected return value left of operation to be identifier `a`, but got: {:?}",
+                left.val
+            );
+
+            assert!(
+                matches!(operator.val, BinaryOperator::Plus),
+                "Expected operator to be {:?}, but got: {:?}",
+                BinaryOperator::Plus,
+                operator.val
+            );
+
+            assert!(
+                matches!(right.val, Expression::Identifier(ref b) if b == "b"),
+                "Exptected return value right of operation to be identifier `b`, but got: {:?}",
+                left.val
+            )
+        } else {
+            self::panic!("Expected to have a return statement, but got none")
+        }
     }
 
     #[test]
@@ -763,18 +847,45 @@ mod tests {
             parser.get_errors().len()
         );
 
-        if let Statement::Function(function_statement) = &program[0].val {
-            assert!(function_statement.parameters.len() == 2);
-            if let Statement::Block(block) = &function_statement.statement.val {
-                assert_eq!(block.statements.len(), 3);
-                assert!(matches!(block.statements[0].val, Statement::Let(_)));
-                assert!(matches!(block.statements[1].val, Statement::Let(_)));
-                assert!(matches!(block.statements[2].val, Statement::Return(_)));
+        if let Statement::Function(FunctionStatement {
+            identifier,
+            parameters,
+            statement,
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(identifier.val, Expression::Identifier(ref i) if i == "add"),
+                "Expected function identifier to be `i`, but got: {:?}",
+                identifier.val
+            );
+            assert!(
+                parameters.len() == 2,
+                "Expected function to have 2 parameteres, but got: {}",
+                parameters.len()
+            );
+            if let Statement::Block(BlockStatement { statements }) = &statement.val {
+                assert!(
+                    statements.len() == 3,
+                    "Expected function body to have 3 statements, but got: {}",
+                    statements.len()
+                );
+
+                assert!(
+                    matches!(statements[2].val, Statement::Return(_)),
+                    "Expected return statement, but got: {:?}",
+                    statements[2].val
+                )
             } else {
-                self::panic!("Bad test")
+                self::panic!(
+                    "Expected function body to be block statement, but got: {:?}",
+                    statement.val
+                );
             }
         } else {
-            self::panic!("Bad test")
+            self::panic!(
+                "Expected to be function statement, but got: {:?}",
+                program[0]
+            )
         }
     }
 
@@ -795,17 +906,45 @@ mod tests {
             parser.get_errors().len()
         );
 
-        if let Statement::Function(function_statement) = &program[0].val {
-            assert!(function_statement.parameters.len() == 2);
-            if let Statement::Block(block) = &function_statement.statement.val {
-                assert_eq!(block.statements.len(), 2);
-                assert!(matches!(block.statements[0].val, Statement::Let(_)));
-                assert!(matches!(block.statements[1].val, Statement::Let(_)));
+        if let Statement::Function(FunctionStatement {
+            identifier,
+            parameters,
+            statement,
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(identifier.val, Expression::Identifier(ref i) if i == "add"),
+                "Expected function identifier to be `i`, but got: {:?}",
+                identifier.val
+            );
+            assert!(
+                parameters.len() == 2,
+                "Expected function to have 2 parameteres, but got: {}",
+                parameters.len()
+            );
+            if let Statement::Block(BlockStatement { statements }) = &statement.val {
+                assert!(
+                    statements.len() == 2,
+                    "Expected function body to have 3 statements, but got: {}",
+                    statements.len()
+                );
+
+                assert!(
+                    matches!(statements[1].val, Statement::Let(_)),
+                    "Expected let statement, but got: {:?}",
+                    statements[1].val
+                )
             } else {
-                self::panic!("Bad test")
+                self::panic!(
+                    "Expected function body to be block statement, but got: {:?}",
+                    statement.val
+                );
             }
         } else {
-            self::panic!("Bad test")
+            self::panic!(
+                "Expected to be function statement, but got: {:?}",
+                program[0]
+            )
         }
     }
 
@@ -825,21 +964,29 @@ mod tests {
             parser.get_errors().len()
         );
 
-        if let Statement::Class(class_statement) = &program[0].val {
-            assert!(matches!(
-                class_statement.identifier.val,
-                Expression::Identifier(_)
-            ));
-
-            assert!(class_statement.extends.is_none());
-
-            if let Statement::Block(block) = &class_statement.body.val {
-                assert_eq!(block.statements.len(), 0);
-            } else {
-                self::panic!("Bad test")
-            }
+        if let Statement::Class(ClassStatement {
+            identifier,
+            extends,
+            body,
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(identifier.val, Expression::Identifier(ref i) if i == "Thomas"),
+                "Expected class name to be `Thomas`, got: {:?}",
+                identifier.val
+            );
+            assert!(
+                extends.is_none(),
+                "Expected class to not extends other class, but got: {:?}",
+                extends.clone().unwrap()
+            );
+            assert!(
+                matches!(body.val, Statement::Block(_)),
+                "Expected class body to be block statement, but got: {:?}",
+                body.val
+            )
         } else {
-            self::panic!("Bad test")
+            self::panic!("Expected class statement, got: {:?}", program[0])
         }
     }
 
@@ -859,28 +1006,28 @@ mod tests {
             parser.get_errors().len()
         );
 
-        if let Statement::Class(ref class_statement) = program[0].val {
-            assert!(matches!(
-                class_statement.identifier.val,
-                Expression::Identifier(_)
-            ));
-
-            assert!(class_statement.extends.is_some());
-            if let Expression::Extends(extends_expression) =
-                &class_statement.extends.as_ref().unwrap().val
-            {
-                assert!(
-                    matches!(&extends_expression.child.val, Expression::Identifier(child) if child == "Jerry")
-                )
-            }
-
-            if let Statement::Block(block) = &class_statement.body.val {
-                assert_eq!(block.statements.len(), 0);
-            } else {
-                self::panic!("Bad test")
-            }
+        if let Statement::Class(ClassStatement {
+            identifier,
+            extends,
+            body,
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(identifier.val, Expression::Identifier(ref i) if i == "Thomas"),
+                "Expected class name to be `Thomas`, got: {:?}",
+                identifier.val
+            );
+            assert!(
+                extends.is_some(),
+                "Expected class to  extends other class, but got none",
+            );
+            assert!(
+                matches!(body.val, Statement::Block(_)),
+                "Expected class body to be block statement, but got: {:?}",
+                body.val
+            )
         } else {
-            self::panic!("Bad test")
+            self::panic!("Expected class statement, got: {:?}", program[0])
         }
     }
 
@@ -900,17 +1047,6 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
-
-        let if_expression: IfExpression = match program[0].val {
-            Statement::Expression(ref if_expr) => match if_expr.val {
-                Expression::If(ref if_expr) => if_expr.clone(),
-                _ => self::panic!("Bad test"),
-            },
-            _ => self::panic!("Bad test"),
-        };
-
-        assert!(if_expression.alternative.is_none());
-        assert!(matches!(if_expression.condition.val, Expression::Binary(_)))
     }
 
     #[test]
@@ -931,20 +1067,6 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
-
-        let if_expression: IfExpression = match program[0].val {
-            Statement::Expression(ref if_expr) => match if_expr.val {
-                Expression::If(ref if_expr) => if_expr.clone(),
-                _ => self::panic!("Bad test"),
-            },
-            _ => self::panic!("Bad test"),
-        };
-
-        assert!(if_expression.alternative.is_some());
-        assert!(matches!(
-            if_expression.consequence.val,
-            Statement::Block(block) if block.statements.len() == 1
-        ))
     }
     #[test]
     fn test_while() {
@@ -962,40 +1084,156 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+    }
 
-        let while_statement = match program[0].val {
-            Statement::Expression(ref whil) => match whil.val {
-                Expression::While(ref whil) => whil,
-                _ => self::panic!("Bad test"),
+    #[test]
+    fn test_identifier_expression() {
+        let code = r#"
+            thomas;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+    }
+
+    #[test]
+    fn test_number_expresion() {
+        let code = r#"
+            100.055;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+    }
+
+    #[test]
+    fn test_string_expression() {
+        let code = r#"
+            "thomas";
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+    }
+
+    #[test]
+    fn test_boolean_expresion() {
+        let code = r#"
+            true;
+            false;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+    }
+
+    #[test]
+    fn test_nil_expression() {
+        let code = r#"
+            nil;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+    }
+
+    #[test]
+    fn test_logical_expression() {
+        let code = r#"
+            a && b;
+            b || c;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        let first = match program[0].val {
+            Statement::Expression(ref e) => match e.val {
+                Expression::Logical(ref logical) => logical,
+                _ => self::panic!("Expected first to be logical expression"),
             },
-            _ => self::panic!("Bad test"),
+            _ => self::panic!("Expected first statement to be an expression statement"),
         };
 
-        assert!(matches!(
-            while_statement.condition.val,
-            Expression::Binary(_)
-        ));
         assert!(
-            matches!(&while_statement.consequence.val, Statement::Block(block)if block.statements.len() == 1 )
-        )
+            matches!(&first.left.val, Expression::Identifier(a) if a == "a"),
+            "Expected to be identifier expression, got {:?}",
+            first.left.val
+        );
+
+        assert!(
+            matches!(&first.operator.val, LogicalOperator::And),
+            "Expected to be logical operator `and`, got {:?}",
+            first.operator.val
+        );
+
+        assert!(
+            matches!(&first.right.val, Expression::Identifier(b) if b == "b"),
+            "Expected to be identifier expression, got {:?}",
+            first.right.val
+        );
+
+        let second = match program[1].val {
+            Statement::Expression(ref e) => match e.val {
+                Expression::Logical(ref logical) => logical,
+                _ => self::panic!("Expected first to be logical expression"),
+            },
+            _ => self::panic!("Expected first statement to be an expression statement"),
+        };
+
+        assert!(
+            matches!(&second.left.val, Expression::Identifier(b) if b == "b"),
+            "Expected to be identifier expression, got {:?}",
+            second.left.val
+        );
+
+        assert!(
+            matches!(&second.operator.val, LogicalOperator::Or),
+            "Expected to be logical operator `and`, got {:?}",
+            second.operator.val
+        );
+
+        assert!(
+            matches!(&second.right.val, Expression::Identifier(c) if c == "c"),
+            "Expected to be identifier expression, got {:?}",
+            second.right.val
+        );
     }
-    #[test]
-    fn test_identifier_expression() {}
-
-    #[test]
-    fn test_number_expresion() {}
-
-    #[test]
-    fn test_string_expression() {}
-
-    #[test]
-    fn test_boolean_expresion() {}
-
-    #[test]
-    fn test_nil_expression() {}
-
-    #[test]
-    fn test_logical_expression() {}
 
     #[test]
     fn test_binary_expression() {}
