@@ -4,10 +4,11 @@ use std::{iter::Peekable, vec::IntoIter};
 pub mod ast;
 pub(crate) mod precedence;
 use ast::{
-    AssignExpression, BinaryExpression, BinaryOperator, CallExpression, Expression,
-    ExtendsExpression, GroupingExpression, IfExpression, IndexExpression, LetStatement,
-    ListExpression, LogicalExpression, LogicalOperator, PropertyExpression, Statement,
-    SuperExpression, UnaryExpression, UnaryOperator, WhileExpression,
+    AssignExpression, BinaryExpression, BinaryOperator, BlockStatement, CallExpression,
+    ClassStatement, Expression, ExtendsExpression, FunctionStatement, GroupingExpression,
+    IfExpression, IndexExpression, LetStatement, ListExpression, LogicalExpression,
+    LogicalOperator, PropertyExpression, ReturnStatement, Statement, SuperExpression,
+    UnaryExpression, UnaryOperator, WhileExpression,
 };
 use precedence::Precedence;
 
@@ -93,15 +94,21 @@ impl Parser {
         })
     }
 
-    fn parse_program(&mut self) -> Vec<WithSpan<Statement>> {
+    pub fn get_errors(&self) -> Vec<Diagnostic> {
+        self.errors.clone()
+    }
+
+    pub fn parse_program(&mut self) -> Vec<WithSpan<Statement>> {
         let mut statements: Vec<WithSpan<Statement>> = Vec::default();
         while let Some(token) = self.peek_token() {
-            let statement = self.parse_statement(token);
-            if statement.is_none() {
+            if token.val == Token::Eof {
+                break;
+            }
+            if let Some(statement) = self.parse_statement(token) {
+                statements.push(statement);
                 continue;
             }
-
-            statements.push(statement.unwrap())
+            self.next();
         }
         statements
     }
@@ -120,54 +127,156 @@ impl Parser {
     // statement parser
 
     fn parse_let_statement(&mut self) -> Option<WithSpan<Statement>> {
-        let begin_span = self.consume_next_if(TokenKind::Let)?.span;
-        let identifier = self.consume_next_if(TokenKind::Identifier)?;
-        let value = match identifier.val {
-            Token::Identifier(ident) => ident,
-            _ => panic!("It should be an identifier, you fucked up"),
-        };
+        let let_token = self
+            .next()
+            .expect("Should only be called if the next token is let token");
 
-        let identifier: WithSpan<Expression> =
-            WithSpan::new(Expression::Identifier(value), identifier.span);
+        let identifier = self.expect_ident()?;
 
-        if self.check_next_kind(|kind| kind == TokenKind::Assign) {
-            self.next().unwrap();
-            self.consume_next_if(TokenKind::Semicolon)?;
+        if self.check_next_kind(|k| k != TokenKind::Assign) {
+            let semicolon = self.expect_next(TokenKind::Semicolon)?;
+            let let_statement = LetStatement {
+                identifier,
+                initializer: None,
+            };
+            return Some(WithSpan::new(
+                Statement::Let(let_statement),
+                Span::union(&let_token, &semicolon),
+            ));
         }
 
-        let initializer = self.parse_expression(Precedence::None).map(Box::new);
+        self.expect_next(TokenKind::Assign)?;
+
+        let initializer = Some(self.parse_expression(Precedence::None)?);
+        let end = self.expect_next(TokenKind::Semicolon)?;
 
         let let_statement = LetStatement {
             identifier,
             initializer,
         };
 
-        let end_span = self.consume_next_if(TokenKind::Semicolon)?.span;
-
         Some(WithSpan::new(
             Statement::Let(let_statement),
-            Span::union_span(begin_span, end_span),
+            Span::union(&let_token, &end),
         ))
     }
 
     fn parse_expresion_statement(&mut self) -> Option<WithSpan<Statement>> {
-        todo!()
+        let expression = self.parse_expression(Precedence::None)?;
+        let semicolon = self.expect_next(TokenKind::Semicolon)?;
+
+        let span = Span::union(&expression, &semicolon);
+        let expr_statement = Statement::Expression(Box::new(expression));
+
+        Some(WithSpan::new(expr_statement, span))
     }
 
     fn parse_return_statement(&mut self) -> Option<WithSpan<Statement>> {
-        todo!()
+        let return_token = self
+            .next()
+            .expect("Should only be called if the next token is return token");
+
+        let return_value = self.parse_expression(Precedence::None);
+
+        let end = self.expect_next(TokenKind::Semicolon)?;
+        let return_statement = ReturnStatement { return_value };
+
+        Some(WithSpan::new(
+            Statement::Return(return_statement),
+            Span::union(&return_token, &end),
+        ))
     }
 
     fn parse_class_statement(&mut self) -> Option<WithSpan<Statement>> {
-        todo!()
+        let class_token = self
+            .next()
+            .expect("Should only be called if the next token is class token");
+        let identifier = self.expect_ident()?;
+        let mut extends: Option<WithSpan<Expression>> = None;
+
+        if self.check_next_kind(|k| k == TokenKind::Extends) {
+            extends = self.parse_extends();
+        }
+
+        let body = Box::new(self.parse_block_statement()?);
+
+        let end = self.expect_next(TokenKind::Semicolon)?;
+
+        let span = Span::union(&class_token, &end);
+
+        let class_statement = ClassStatement {
+            identifier,
+            extends,
+            body,
+        };
+
+        Some(WithSpan::new(Statement::Class(class_statement), span))
     }
 
     fn parse_block_statement(&mut self) -> Option<WithSpan<Statement>> {
-        todo!()
+        let open_brace = self.expect_next(TokenKind::LBrace)?;
+        let mut statements: Vec<WithSpan<Statement>> = Vec::default();
+        let mut end: WithSpan<Token> = EOF_TOKEN;
+
+        while let Some(token) = self.peek_token() {
+            if Into::<TokenKind>::into(&token.val) == TokenKind::RBrace
+                || Into::<TokenKind>::into(&token.val) == TokenKind::Eof
+            {
+                end = self.next().unwrap();
+                break;
+            }
+
+            if let Some(statement) = self.parse_statement(token) {
+                statements.push(statement);
+            };
+        }
+
+        let span = Span::union(&open_brace, &end);
+        let block_statement = BlockStatement { statements };
+
+        Some(WithSpan::new(Statement::Block(block_statement), span))
     }
 
     fn parse_function_statement(&mut self) -> Option<WithSpan<Statement>> {
-        todo!()
+        let function_token = self
+            .next()
+            .expect("Should only be called if the next token is  function token");
+        let identifier = self.expect_ident()?;
+        self.expect_next(TokenKind::LParen)?;
+        let parameters = self.parse_function_parameters();
+        self.expect_next(TokenKind::RParen)?;
+        let statement = Box::new(self.parse_block_statement()?);
+
+        let end = self.expect_next(TokenKind::Semicolon)?;
+
+        let span = Span::union(&function_token, &end);
+
+        let function_statement = FunctionStatement {
+            identifier,
+            parameters,
+            statement,
+        };
+
+        Some(WithSpan::new(Statement::Function(function_statement), span))
+    }
+
+    fn parse_function_parameters(&mut self) -> Vec<WithSpan<Expression>> {
+        let mut parameters: Vec<WithSpan<Expression>> = Vec::default();
+
+        if self.check_next_kind(|k| k != TokenKind::RParen) {
+            if let Some(param) = self.expect_ident() {
+                parameters.push(param);
+            };
+
+            while self.check_next_kind(|k| k == TokenKind::Comma) {
+                self.expect_next(TokenKind::Comma);
+                if let Some(param) = self.expect_ident() {
+                    parameters.push(param);
+                }
+            }
+        }
+
+        parameters
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Option<WithSpan<Expression>> {
@@ -197,7 +306,6 @@ impl Parser {
             TokenKind::Bang | TokenKind::Minus => self.parse_unary(), // parse unary
             TokenKind::LParen => self.parse_grouping(),               // parse grouping
             TokenKind::LBracket => self.parse_list(),                 // parse list
-            TokenKind::Extends => self.parse_extends(),
             TokenKind::If => self.parse_if_expresion(),
             TokenKind::For => self.parse_for_expression(),
             TokenKind::While => self.parse_while_expression(),
@@ -226,7 +334,11 @@ impl Parser {
             TokenKind::LParen => self.parse_call(left),                 // parse call
             TokenKind::LBracket => self.parse_index(left),              // parse index
             TokenKind::Dot => self.parse_property(left),                // parse parse property
-            _ => todo!(),
+            _ => {
+                let peek = self.peek_token().unwrap_or(EOF_TOKEN);
+                self.errors(&format!("No infix found for: {}", peek.val), peek.span);
+                None
+            }
         }
     }
 
@@ -257,11 +369,11 @@ impl Parser {
         let if_token = &self
             .next()
             .expect("Should only be called if the next token is if token");
-        self.consume_next_if(TokenKind::LParen)?; // consumes the next parentheses
+        self.expect_next(TokenKind::LParen)?; // consumes the next parentheses
 
         let condition = Box::new(self.parse_expression(Precedence::None)?);
 
-        self.consume_next_if(TokenKind::RParen)?; // consumes the closing parentheses
+        self.expect_next(TokenKind::RParen)?; // consumes the closing parentheses
 
         let consequence = Box::new(self.parse_block_statement()?);
         let mut span = Span::union(if_token, &consequence);
@@ -288,11 +400,11 @@ impl Parser {
         let while_token = &self
             .next()
             .expect("Should only be called if next token if else token");
-        self.consume_next_if(TokenKind::LParen)?;
+        self.expect_next(TokenKind::LParen)?;
 
         let condition = Box::new(self.parse_expression(Precedence::None)?);
 
-        self.consume_next_if(TokenKind::RParen)?;
+        self.expect_next(TokenKind::RParen)?;
 
         let consequence = Box::new(self.parse_block_statement()?);
         let span = Span::union(while_token, &consequence);
@@ -306,7 +418,7 @@ impl Parser {
     }
 
     fn parse_for_expression(&mut self) -> Option<WithSpan<Expression>> {
-        todo!()
+        None
     }
 
     fn parse_unary(&mut self) -> Option<WithSpan<Expression>> {
@@ -342,7 +454,7 @@ impl Parser {
             .next()
             .expect("Should only be called when the next token us left parenthesis");
         let expression = self.parse_expression(Precedence::None)?;
-        let right_paren = self.consume_next_if(TokenKind::RParen)?;
+        let right_paren = self.expect_next(TokenKind::RParen)?;
         let span = Span::union(start_token, &right_paren);
 
         let grouping = GroupingExpression {
@@ -357,7 +469,7 @@ impl Parser {
             .next()
             .expect("Should only be called when the next token us left parenthesis");
         let elements = self.parse_list_items(TokenKind::RBracket);
-        let right_bracket = self.consume_next_if(TokenKind::RBracket)?;
+        let right_bracket = self.expect_next(TokenKind::RBracket)?;
 
         let span = Span::union(start_token, &right_bracket);
 
@@ -377,7 +489,7 @@ impl Parser {
             }
 
             while self.check_next_kind(|f| f == TokenKind::Comma) {
-                self.consume_next_if(TokenKind::Comma).unwrap();
+                self.expect_next(TokenKind::Comma).unwrap();
                 if let Some(expr) = self.parse_expression(Precedence::None) {
                     elements.push(expr)
                 }
@@ -388,7 +500,7 @@ impl Parser {
     }
 
     fn parse_super(&mut self, keyword: &WithSpan<Token>) -> Option<WithSpan<Expression>> {
-        self.consume_next_if(TokenKind::Dot)?;
+        self.expect_next(TokenKind::Dot)?;
         let identifier = Box::new(self.expect_ident()?);
         let span = Span::union(keyword, &identifier);
         Some(WithSpan::new(
@@ -416,7 +528,7 @@ impl Parser {
         self.next().expect("This should be a token, you fucked up");
         let index = self.parse_expression(Precedence::None)?;
 
-        let right_bracket = self.consume_next_if(TokenKind::RBracket)?;
+        let right_bracket = self.expect_next(TokenKind::RBracket)?;
         let span = Span::union(&left, &right_bracket);
 
         Some(WithSpan::new(
@@ -488,7 +600,7 @@ impl Parser {
         self.next()
             .expect("Should only be called if next token is left paren");
         let arguments = self.parse_list_items(TokenKind::RParen);
-        let right_paren = self.consume_next_if(TokenKind::RParen)?;
+        let right_paren = self.expect_next(TokenKind::RParen)?;
         let span = Span::union(&left, &right_paren);
         let call = CallExpression {
             function: Box::new(left),
@@ -524,18 +636,15 @@ impl Parser {
         }
     }
 
-    fn consume_next_if(&mut self, kind: TokenKind) -> Option<WithSpan<Token>> {
-        if self.check_next_kind(|k| k == kind) {
-            Some(self.next().unwrap()) // only consumes the right token
+    fn expect_next(&mut self, kind: TokenKind) -> Option<WithSpan<Token>> {
+        let next_token = &self.next().unwrap_or(EOF_TOKEN);
+        let next_kind: TokenKind = next_token.into();
+        if next_kind == kind {
+            Some(next_token.clone())
         } else {
-            let peek_token = &self.peek_token().unwrap_or(EOF_TOKEN);
             self.errors(
-                &format!(
-                    "Expected {}, got {}",
-                    kind,
-                    Into::<TokenKind>::into(peek_token)
-                ),
-                peek_token.span.clone(),
+                &format!("Expected {}, got {}", kind, next_kind),
+                next_token.span.clone(),
             );
             None
         }
@@ -553,6 +662,226 @@ impl Parser {
                 self.errors(&format!("Expected identifier, got: {}", a), next_token.span);
                 None
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_parse_let_statement() {
+        let input = r#"
+            let iden = 10;
+            let a;
+        "#;
+
+        let mut parser = Parser::from_code(input);
+        let program = parser.parse_program();
+        let errors = parser.get_errors();
+        assert!(errors.is_empty());
+        assert!(program.len() == 2);
+        let expected_ident = ["iden", "a"];
+        for i in 0..2 {
+            let statement = match &program[i].val {
+                Statement::Let(s) => s,
+                _ => self::panic!("Failed"),
+            };
+
+            let identifier = match statement.identifier.val {
+                Expression::Identifier(ref ident) => ident,
+                _ => self::panic!("Bad test"),
+            };
+            assert_eq!(identifier, expected_ident[i])
+        }
+
+        let first = match program[0].val {
+            Statement::Let(ref first) => first,
+            _ => self::panic!("Bad test"),
+        };
+        let first_value = match first.initializer.clone().unwrap().val {
+            Expression::Number(n) => n,
+            _ => self::panic!("Bad test"),
+        };
+
+        assert!(first_value == 10.0);
+
+        let second = match program[1].val {
+            Statement::Let(ref l) => l,
+            _ => self::panic!("Bad test"),
+        };
+
+        assert!(second.initializer.is_none())
+    }
+
+    // #[test]
+    fn test_return_statement_value() {
+        let input = r#"
+            return b;
+        "#;
+        let mut parser = Parser::from_code(input);
+
+        let program = parser.parse_program();
+
+        assert!(parser.get_errors().is_empty());
+        assert!(program.len() == 1);
+        assert!(matches!(&program[0].val, Statement::Return(_)));
+    }
+
+    #[test]
+    fn test_return_statement_expression() {
+        let code = r#"
+            return a + b;
+        "#;
+        let mut parser = Parser::from_code(code);
+
+        let program = parser.parse_program();
+
+        assert!(parser.get_errors().is_empty());
+        assert!(program.len() == 1);
+        assert!(matches!(&program[0].val, Statement::Return(_)));
+    }
+
+    #[test]
+    fn test_parse_function_statement_with_return() {
+        let code = r#"
+            fun add(a, b) {
+                let a = 1;
+                let b = 2;
+
+                return a + b;
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Function(function_statement) = &program[0].val {
+            assert!(function_statement.parameters.len() == 2);
+            if let Statement::Block(block) = &function_statement.statement.val {
+                assert_eq!(block.statements.len(), 3);
+                assert!(matches!(block.statements[0].val, Statement::Let(_)));
+                assert!(matches!(block.statements[1].val, Statement::Let(_)));
+                assert!(matches!(block.statements[2].val, Statement::Return(_)));
+            } else {
+                self::panic!("Bad test")
+            }
+        } else {
+            self::panic!("Bad test")
+        }
+    }
+
+    #[test]
+    fn test_parse_function_statement_without_return() {
+        let code = r#"
+            fun add(a, b) {
+                let a = 1;
+                let b = 2;
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Function(function_statement) = &program[0].val {
+            assert!(function_statement.parameters.len() == 2);
+            if let Statement::Block(block) = &function_statement.statement.val {
+                assert_eq!(block.statements.len(), 2);
+                assert!(matches!(block.statements[0].val, Statement::Let(_)));
+                assert!(matches!(block.statements[1].val, Statement::Let(_)));
+            } else {
+                self::panic!("Bad test")
+            }
+        } else {
+            self::panic!("Bad test")
+        }
+    }
+
+    #[test]
+    fn test_class_statement_without_extends() {
+        let code = r#"
+            class Thomas  {
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Class(class_statement) = &program[0].val {
+            assert!(matches!(
+                class_statement.identifier.val,
+                Expression::Identifier(_)
+            ));
+
+            assert!(class_statement.extends.is_none());
+
+            if let Statement::Block(block) = &class_statement.body.val {
+                assert_eq!(block.statements.len(), 0);
+            } else {
+                self::panic!("Bad test")
+            }
+        } else {
+            self::panic!("Bad test")
+        }
+    }
+
+    #[test]
+    fn test_function_with_extends() {
+        let code = r#"
+            class Thomas extends Jerry {
+
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Class(ref class_statement) = program[0].val {
+            assert!(matches!(
+                class_statement.identifier.val,
+                Expression::Identifier(_)
+            ));
+
+            assert!(class_statement.extends.is_some());
+            if let Expression::Extends(extends_expression) =
+                &class_statement.extends.as_ref().unwrap().val
+            {
+                assert!(
+                    matches!(&extends_expression.child.val, Expression::Identifier(child) if child == "Jerry")
+                )
+            }
+
+            if let Statement::Block(block) = &class_statement.body.val {
+                assert_eq!(block.statements.len(), 0);
+            } else {
+                self::panic!("Bad test")
+            }
+        } else {
+            self::panic!("Bad test")
         }
     }
 }

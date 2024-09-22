@@ -60,14 +60,14 @@ pub struct BlockStatement {
 
 #[derive(Debug, Clone)]
 pub struct ReturnStatement {
-    pub return_value: Box<WithSpan<Expression>>,
+    pub return_value: Option<WithSpan<Expression>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct LetStatement {
     pub identifier: WithSpan<Expression>,
-    pub initializer: Option<Box<WithSpan<Expression>>>, // This should only be none when we doesnt have
-                                                        // assign after identifier
+    pub initializer: Option<WithSpan<Expression>>, // This should only be none when we doesnt have
+                                                   // assign after identifier
 }
 
 #[derive(Debug, Clone)]
