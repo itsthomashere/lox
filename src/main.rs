@@ -5,13 +5,7 @@ mod parser;
 mod token;
 
 fn main() {
-    let code = r#"
-        if (x < 10) {
-            return 2;
-        } else {
-            return "thomas";
-        }; 
-        "#;
+    let code = r#"this.mono;"#;
     let lexer = Lexer::new(code);
     let mut parser = Parser::from_lexer(lexer);
     let program = parser.parse_program();

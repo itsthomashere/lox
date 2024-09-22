@@ -1496,31 +1496,366 @@ mod tests {
                     "Expected: {:?}, got: {:?}",
                     expected[i].2, right.val
                 );
+            } else {
+                self::panic!("Expected binary expression, got: {:?}", v.val)
             }
         }
     }
 
     #[test]
-    fn test_call_expresion() {}
+    fn test_call_expresion_without_arguments() {
+        let code = r#"
+            add();
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::Call(CallExpression {
+                    function,
+                    arguments,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert_eq!(
+                function.val,
+                Expression::Identifier("add".to_string()),
+                "Expected function identifier to be `add`, got: {:?}",
+                function.val
+            );
+
+            assert_eq!(
+                arguments.len(),
+                0,
+                "Expected function to have no arguments, but got: {}",
+                arguments.len()
+            )
+        } else {
+            self::panic!("Expected call expresion, got: {:?}", program[0].val)
+        }
+    }
 
     #[test]
-    fn test_assign_expresion() {}
+    fn test_call_expression_with_args() {
+        let code = r#"
+            add((1 + 2), (2 + 3), 3);
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::Call(CallExpression {
+                    function,
+                    arguments,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert_eq!(
+                function.val,
+                Expression::Identifier("add".to_string()),
+                "Expected function identifier to be `add`, got: {:?}",
+                function.val
+            );
+
+            assert_eq!(
+                arguments.len(),
+                3,
+                "Expected function to have 3 arguments, but got: {}",
+                arguments.len()
+            )
+        } else {
+            self::panic!("Expected call expresion, got: {:?}", program[0].val)
+        }
+    }
 
     #[test]
-    fn test_index_expresion() {}
+    fn test_assign_expresion() {
+        let code = r#"
+            a = (10 + 5);
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val: Expression::Assign(AssignExpression { left, right }),
+            ..
+        }) = &program[0].val
+        {
+            assert_eq!(
+                left.val,
+                Expression::Identifier("a".to_string()),
+                "Expected identifier to be assigned to be `a`. Got: {:?}",
+                left.val
+            );
+            assert!(
+                matches!(&right.val, Expression::Grouping(_)),
+                "Expected grouping, but found: {:?}",
+                right.val
+            )
+        } else {
+            self::panic!("Expected assign expression, got: {:?}", program[0].val)
+        }
+    }
 
     #[test]
-    fn test_grouping_expresion() {}
+    fn test_index_expresion() {
+        let code = r#"
+            array[(10 + 2)];
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val: Expression::Index(IndexExpression { left, index }),
+            ..
+        }) = &program[0].val
+        {
+            assert_eq!(
+                left.val,
+                Expression::Identifier("array".to_string()),
+                "Epxected identifier with value `array, got: {:?}`",
+                left.val
+            );
+            assert!(
+                matches!(index.val, Expression::Grouping(_)),
+                "Expected index value to be grouping expression, got: {:?}",
+                index.val
+            )
+        } else {
+            self::panic!("Expected index expression, got: {:?}", program[0].val)
+        }
+    }
 
     #[test]
-    fn test_list_expresion() {}
+    fn test_grouping_expresion() {
+        let code = r#"
+            ((a * b) + c);
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val: Expression::Grouping(GroupingExpression { expression }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(expression.val, Expression::Binary(_)),
+                "Expected to be binary, got: {:?}",
+                expression.val
+            )
+        } else {
+            self::panic!("Epxected grouping expression, got: {:?}", program[0].val)
+        };
+    }
 
     #[test]
-    fn test_super_expresion() {}
+    fn test_list_expresion() {
+        let code = r#"[1, 2, 3, 4];"#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val: Expression::List(ListExpression { elements }),
+            ..
+        }) = &program[0].val
+        {
+            assert_eq!(
+                elements.len(),
+                4,
+                "Expected the array to have 4 elements, got: {}",
+                elements.len()
+            );
+
+            for (i, val) in elements.iter().enumerate() {
+                assert_eq!(
+                    val.val,
+                    Expression::Number((i + 1) as f64),
+                    "Expected to be number: {}, got: {:?}",
+                    (i + 1),
+                    val.val
+                )
+            }
+        } else {
+            self::panic!("Expected list expression, got: {:?}", program[0].val)
+        }
+    }
 
     #[test]
-    fn test_unary_expresion() {}
+    fn test_super_expresion() {
+        let code = r#"super.init(a, b);"#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::Call(CallExpression {
+                    function,
+                    arguments,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(
+                    &function.val,
+                    Expression::Super(SuperExpression { identifier })
+                    if identifier.val == Expression::Identifier("init".to_string())
+                ),
+                "Expected method to be `init`, got: {:?}",
+                function.val
+            );
+            assert_eq!(
+                arguments.len(),
+                2,
+                "Expected program to take 2 arguments, got: {}",
+                arguments.len()
+            )
+        } else {
+            self::panic!("Expected call expression, got: {:?}", program[0].val)
+        }
+    }
 
     #[test]
-    fn test_this_expresion() {}
+    fn test_unary_expresion() {
+        let code = r#"
+            -5;
+            !(10 <= 5);
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        for i in &program {
+            assert!(
+                matches!(
+                    i.val,
+                    Statement::Expression(WithSpan {
+                        val: Expression::Unary(_),
+                        ..
+                    })
+                ),
+                "Expected unary expression, got: {:?}",
+                i.val
+            )
+        }
+        assert!(
+            matches!(
+                &program[0].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Unary(UnaryExpression {
+                        operator,
+                        expression
+                    }),
+                    ..
+                }) if operator.val == UnaryOperator::Minus && matches!(expression.val, Expression::Number(5.0))
+            ),
+            "Expected unary expression: -5, got: {:?}",
+            program[0].val
+        );
+        assert!(
+            matches!(
+                &program[1].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Unary(UnaryExpression {
+                        operator,
+                        expression
+                    }),
+                    ..
+                }) if operator.val == UnaryOperator::Bang && matches!(&expression.val, Expression::Grouping(_))
+            ),
+            "Expected unary expression: !(10 <= 5), got: {:?}",
+            program[1].val
+        )
+    }
+
+    #[test]
+    fn test_this_expresion() {
+        let code = r#"
+            this.name;
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::Property(PropertyExpression {
+                    identifier,
+                    property,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(identifier.val, Expression::This),
+                "Expected This, got: {:?}",
+                identifier.val
+            );
+            assert_eq!(
+                property.val,
+                Expression::Identifier("name".to_string()),
+                "Expected identifier `name`, got: {:?}",
+                property.val
+            );
+        } else {
+            self::panic!("Expected property expression, got: {:?}", program[0].val)
+        }
+    }
 }
