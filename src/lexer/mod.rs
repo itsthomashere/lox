@@ -220,7 +220,7 @@ impl<'a> Lexer<'a> {
     }
     fn read_identifier(&mut self) -> Token {
         let identifier: String = self
-            .consume_while(|f| f.is_ascii_alphanumeric())
+            .consume_while(|f| f.is_ascii_alphanumeric() || f == '_')
             .into_iter()
             .collect();
         if let Some(keyword) = self.keywords.get(identifier.as_str()) {

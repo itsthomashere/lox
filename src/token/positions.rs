@@ -1,4 +1,7 @@
-use std::{cmp::min, fmt::Display};
+use std::{
+    cmp::{max, min},
+    fmt::Display,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
@@ -34,7 +37,7 @@ impl Span {
     pub fn union_span(a: Span, b: Span) -> Self {
         Self {
             start: min(a.start, b.start),
-            end: min(a.end, b.end),
+            end: max(a.end, b.end),
         }
     }
 
