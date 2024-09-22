@@ -120,7 +120,7 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Start:{}. End: {}. Value: {}",
+            "<{}:{}> {}",
             self.span.start.0, self.span.end.0, self.val
         )
     }
