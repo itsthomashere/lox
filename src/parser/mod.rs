@@ -1189,6 +1189,18 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        assert!(
+            matches!(
+                &program[0].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Identifier(s),
+                    ..
+                }) if s == "thomas"
+            ),
+            "Expected identifier expression statement with value `thomas`, got: {:?}",
+            program[0].val
+        )
     }
 
     #[test]
