@@ -1394,7 +1394,111 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_expression() {}
+    fn test_binary_expression() {
+        let code = r#"
+            a + b;
+            a - b;
+            b * c;
+            c < b;
+            a > b;
+            10 >= 5;
+            5 <= 5;
+            10 != 5;
+            10 == 10;
+            a / b;
+        "#;
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        type Expected = (Expression, BinaryOperator, Expression);
+
+        let expected: Vec<Expected> = vec![
+            (
+                Expression::Identifier("a".to_owned()),
+                BinaryOperator::Plus,
+                Expression::Identifier("b".to_string()),
+            ),
+            (
+                Expression::Identifier("a".to_string()),
+                BinaryOperator::Minus,
+                Expression::Identifier("b".to_string()),
+            ),
+            (
+                Expression::Identifier("b".to_string()),
+                BinaryOperator::Product,
+                Expression::Identifier("c".to_string()),
+            ),
+            (
+                Expression::Identifier("c".to_string()),
+                BinaryOperator::Less,
+                Expression::Identifier("b".to_string()),
+            ),
+            (
+                Expression::Identifier("a".to_string()),
+                BinaryOperator::Greater,
+                Expression::Identifier("b".to_string()),
+            ),
+            (
+                Expression::Number(10.0),
+                BinaryOperator::GreaterEqual,
+                Expression::Number(5.0),
+            ),
+            (
+                Expression::Number(5.0),
+                BinaryOperator::LessEqual,
+                Expression::Number(5.0),
+            ),
+            (
+                Expression::Number(10.0),
+                BinaryOperator::NotEqual,
+                Expression::Number(5.0),
+            ),
+            (
+                Expression::Number(10.0),
+                BinaryOperator::Equal,
+                Expression::Number(10.0),
+            ),
+            (
+                Expression::Identifier("a".to_string()),
+                BinaryOperator::Divide,
+                Expression::Identifier("b".to_string()),
+            ),
+        ];
+
+        for (i, v) in program.iter().enumerate() {
+            if let Statement::Expression(WithSpan {
+                val:
+                    Expression::Binary(BinaryExpression {
+                        left,
+                        operator,
+                        right,
+                    }),
+                ..
+            }) = &v.val
+            {
+                assert_eq!(
+                    left.val, expected[i].0,
+                    "Expected: {:?}, got: {:?}",
+                    expected[i].0, left.val
+                );
+                assert_eq!(
+                    operator.val, expected[i].1,
+                    "Expected: {:?}, got: {:?}",
+                    expected[i].1, operator.val
+                );
+                assert_eq!(
+                    right.val, expected[i].2,
+                    "Expected: {:?}, got: {:?}",
+                    expected[i].2, right.val
+                );
+            }
+        }
+    }
 
     #[test]
     fn test_call_expresion() {}

@@ -1,6 +1,6 @@
 use crate::token::{positions::WithSpan, TokenKind};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
@@ -10,7 +10,7 @@ pub enum Statement {
     Class(ClassStatement),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     // Literal Expression
     Identifier(String),
@@ -39,47 +39,47 @@ pub enum Expression {
     List(ListExpression),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ClassStatement {
     pub identifier: WithSpan<Expression>,
     pub extends: Option<WithSpan<Expression>>,
     pub body: Box<WithSpan<Statement>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionStatement {
     pub identifier: WithSpan<Expression>,
     pub parameters: Vec<WithSpan<Expression>>,
     pub statement: Box<WithSpan<Statement>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockStatement {
     pub statements: Vec<WithSpan<Statement>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReturnStatement {
     pub return_value: Option<WithSpan<Expression>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LetStatement {
     pub identifier: WithSpan<Expression>,
     pub initializer: Option<WithSpan<Expression>>, // This should only be none when we doesnt have
                                                    // assign after identifier
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ListExpression {
     pub elements: Vec<WithSpan<Expression>>,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GroupingExpression {
     pub expression: Box<WithSpan<Expression>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PropertyExpression {
     pub identifier: Box<WithSpan<Expression>>,
     pub property: Box<WithSpan<Expression>>,
@@ -95,7 +95,7 @@ pub struct PropertyExpression {
 /// ```
 ///
 /// * `identifier`: Inherited class Identifier
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExtendsExpression {
     pub child: Box<WithSpan<Expression>>,
 }
@@ -104,7 +104,7 @@ pub struct ExtendsExpression {
 ///
 /// * `condition`: [TODO:parameter]
 /// * `consequence`: [TODO:parameter]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ForExpression {
     pub condition: Box<WithSpan<Expression>>,
     pub consequence: Box<WithSpan<Statement>>,
@@ -114,7 +114,7 @@ pub struct ForExpression {
 ///
 /// * `condition`: [TODO:parameter]
 /// * `consequence`: [TODO:parameter]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WhileExpression {
     pub condition: Box<WithSpan<Expression>>,
     pub consequence: Box<WithSpan<Statement>>,
@@ -132,7 +132,7 @@ pub struct WhileExpression {
 /// * `condition`: Condition after if keyword
 /// * `consequence`: Block of code execute if true
 /// * `alternative`: Alternate if false
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IfExpression {
     pub condition: Box<WithSpan<Expression>>,
     pub consequence: Box<WithSpan<Statement>>,
@@ -151,7 +151,7 @@ pub struct IfExpression {
 /// ```
 ///
 /// * `arguments`: A list of expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SuperExpression {
     pub identifier: Box<WithSpan<Expression>>,
 }
@@ -179,7 +179,7 @@ pub struct SuperExpression {
 ///
 /// * `left`: Identifer or expression identifier
 /// * `index`: Index expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IndexExpression {
     pub left: Box<WithSpan<Expression>>,
     pub index: Box<WithSpan<Expression>>,
@@ -196,7 +196,7 @@ pub struct IndexExpression {
 ///
 /// * `function`: Function expression
 /// * `arguments`: List of expression as arguments
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CallExpression {
     pub function: Box<WithSpan<Expression>>,
     pub arguments: Vec<WithSpan<Expression>>,
@@ -212,7 +212,7 @@ pub struct CallExpression {
 /// ```
 /// * `identifier`: Identifier expession
 /// * `expression`: Expression as value assigned
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AssignExpression {
     pub left: Box<WithSpan<Expression>>,
     pub right: Box<WithSpan<Expression>>,
@@ -229,7 +229,7 @@ pub struct AssignExpression {
 ///
 /// * `operator`: Unary operator, we currently have `-`, `!`
 /// * `expression`: Expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnaryExpression {
     pub operator: Box<WithSpan<UnaryOperator>>,
     pub expression: Box<WithSpan<Expression>>,
@@ -248,14 +248,14 @@ pub struct UnaryExpression {
 /// * `left`: Left expression
 /// * `operator`: Logical operator
 /// * `right`: Right epxression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LogicalExpression {
     pub left: Box<WithSpan<Expression>>,
     pub operator: WithSpan<LogicalOperator>,
     pub right: Box<WithSpan<Expression>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Binary Expressions take this representation
 /// ```text
 ///     (1 + 2 + 3) && (3 + 4)
@@ -276,19 +276,19 @@ pub struct BinaryExpression {
     pub right: Box<WithSpan<Expression>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum UnaryOperator {
     Bang,
     Minus,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum LogicalOperator {
     And, // &&
     Or,  // ||
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum BinaryOperator {
     Plus,
     Minus,
