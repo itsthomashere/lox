@@ -637,14 +637,14 @@ impl Parser {
     }
 
     fn expect_next(&mut self, kind: TokenKind) -> Option<WithSpan<Token>> {
-        let next_token = &self.next().unwrap_or(EOF_TOKEN);
-        let next_kind: TokenKind = next_token.into();
+        let next_token = self.next().unwrap_or(EOF_TOKEN);
+        let next_kind: TokenKind = next_token.clone().into();
         if next_kind == kind {
-            Some(next_token.clone())
+            Some(next_token)
         } else {
             self.errors(
                 &format!("Expected {}, got {}", kind, next_kind),
-                next_token.span.clone(),
+                next_token.span,
             );
             None
         }
