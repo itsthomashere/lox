@@ -1041,12 +1041,41 @@ mod tests {
 
         let mut parser = Parser::from_code(code);
         let program = parser.parse_program();
-
         assert!(
             parser.get_errors().is_empty(),
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::If(IfExpression {
+                    condition,
+                    consequence,
+                    alternative,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                alternative.is_none(),
+                "Expected if expression to have no alternative flow, but got some"
+            );
+
+            assert!(
+                matches!(condition.val, Expression::Binary(_)),
+                "Expected condition to be binary expression, but got: {:?}",
+                consequence.val
+            );
+
+            assert!(
+                matches!(consequence.val, Statement::Block(_)),
+                "Epxected consequence to be a block statement, but got: {:?}",
+                consequence.val
+            )
+        } else {
+            self::panic!("Expected to be if expression, got: {:?}", program[0].val);
+        }
     }
 
     #[test]
@@ -1067,6 +1096,42 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::If(IfExpression {
+                    condition,
+                    consequence,
+                    alternative,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                alternative.is_some(),
+                "Expected if expression to have some alternative flow, but got none"
+            );
+
+            assert!(
+                matches!(alternative.clone().unwrap().val, Statement::Block(_)),
+                "Expected alternative flow to be block statement, but got: {:?}",
+                alternative.clone().unwrap()
+            );
+
+            assert!(
+                matches!(condition.val, Expression::Binary(_)),
+                "Expected condition to be binary expression, but got: {:?}",
+                consequence.val
+            );
+
+            assert!(
+                matches!(consequence.val, Statement::Block(_)),
+                "Epxected consequence to be a block statement, but got: {:?}",
+                consequence.val
+            )
+        } else {
+            self::panic!("Expected to be if expression, got: {:?}", program[0].val);
+        }
     }
     #[test]
     fn test_while() {
@@ -1084,6 +1149,30 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::While(WhileExpression {
+                    condition,
+                    consequence,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(condition.val, Expression::Binary(_)),
+                "Expected condition to be binary expression, but got: {:?}",
+                consequence.val
+            );
+
+            assert!(
+                matches!(consequence.val, Statement::Block(_)),
+                "Epxected consequence to be a block statement, but got: {:?}",
+                consequence.val
+            )
+        } else {
+            self::panic!("Expected while expression, but got: {:?}", program[0].val)
+        }
     }
 
     #[test]
@@ -1110,12 +1199,23 @@ mod tests {
 
         let mut parser = Parser::from_code(code);
         let program = parser.parse_program();
-
         assert!(
             parser.get_errors().is_empty(),
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        assert!(
+            matches!(
+                &program[0].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Number(n),
+                    ..
+                }) if *n == 100.055
+            ),
+            "Expected to have a number expression statement, but got: {:?}",
+            program[0].val
+        )
     }
 
     #[test]
@@ -1126,12 +1226,23 @@ mod tests {
 
         let mut parser = Parser::from_code(code);
         let program = parser.parse_program();
-
         assert!(
             parser.get_errors().is_empty(),
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        assert!(
+            matches!(
+                &program[0].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::String(s),
+                    ..
+                }) if s == "thomas"
+            ),
+            "Expected to have a string expression statement, but got: {:?}",
+            program[0].val
+        )
     }
 
     #[test]
@@ -1149,6 +1260,30 @@ mod tests {
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        assert!(
+            matches!(
+                &program[0].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Boolean(true),
+                    ..
+                })
+            ),
+            "Expected to have a true boolean expression statement, but got: {:?}",
+            program[0].val
+        );
+
+        assert!(
+            matches!(
+                &program[1].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Boolean(false),
+                    ..
+                })
+            ),
+            "Expected to have a false boolean expression statement, but got: {:?}",
+            program[1].val
+        )
     }
 
     #[test]
@@ -1159,12 +1294,23 @@ mod tests {
 
         let mut parser = Parser::from_code(code);
         let program = parser.parse_program();
-
         assert!(
             parser.get_errors().is_empty(),
             "Expected progarm to have no errors, but got: {} instead",
             parser.get_errors().len()
         );
+
+        assert!(
+            matches!(
+                &program[0].val,
+                Statement::Expression(WithSpan {
+                    val: Expression::Nil,
+                    ..
+                })
+            ),
+            "Expected to have a nil expression statement, but got: {:?}",
+            program[0].val
+        )
     }
 
     #[test]
