@@ -70,15 +70,31 @@ pub struct LetStatement {
                                                    // assign after identifier
 }
 
+/// A List of expression in []
+///
+/// * `elements`: expressions
 #[derive(Debug, Clone, PartialEq)]
 pub struct ListExpression {
     pub elements: Vec<WithSpan<Expression>>,
 }
+/// Grouping expression is a statement grouped together in ()
+///
+/// * `expression`: Expression inside ()
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupingExpression {
     pub expression: Box<WithSpan<Expression>>,
 }
 
+/// Property expressions take this representation
+/// ```text
+///     iden.val;
+///      ^    ^_ _ _
+///  identifier     |
+///              property
+/// ```             
+///
+/// * `identifier`: Identifier
+/// * `property`: Identifier of property
 #[derive(Debug, Clone, PartialEq)]
 pub struct PropertyExpression {
     pub identifier: Box<WithSpan<Expression>>,
@@ -100,10 +116,21 @@ pub struct ExtendsExpression {
     pub child: Box<WithSpan<Expression>>,
 }
 
-/// [TODO:description]
+/// For expression take this representation
+/// ```text
+///     for (let x = 0; x < 10; x = x + 1) {
+///             ^_ _ _ _ _
+///         initializer   ^_ _ _ _ _^
+///                       |         |
+///                   condition  assignment
+///         ... -> consequence block statement
+///     };
+/// ```
 ///
-/// * `condition`: [TODO:parameter]
-/// * `consequence`: [TODO:parameter]
+/// * `initializer`: Intializer variable used by the for loop
+/// * `condition`: Condition for the initialized variable
+/// * `asignment`: Expression performed to the variable
+/// * `consequence`: Block statement
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForExpression {
     pub initializer: Box<WithSpan<Statement>>,
@@ -112,10 +139,17 @@ pub struct ForExpression {
     pub consequence: Box<WithSpan<Statement>>,
 }
 
-/// [TODO:description]
+/// While expressions take this representation
+/// ```text
+///     while (n < 0) {
+///             ^
+///         condition
+///         ... -> consequence
+///     }
+/// ```
 ///
-/// * `condition`: [TODO:parameter]
-/// * `consequence`: [TODO:parameter]
+/// * `condition`: Condition for the while loop
+/// * `consequence`: Block statement
 #[derive(Debug, Clone, PartialEq)]
 pub struct WhileExpression {
     pub condition: Box<WithSpan<Expression>>,
