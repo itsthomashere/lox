@@ -219,7 +219,6 @@ impl Parser {
         let mut end: WithSpan<Token> = EOF_TOKEN;
 
         while let Some(token) = self.peek_token() {
-            println!("{:?}", token);
             if Into::<TokenKind>::into(&token.val) == TokenKind::RBrace
                 || Into::<TokenKind>::into(&token.val) == TokenKind::Eof
             {
