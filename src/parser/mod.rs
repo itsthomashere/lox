@@ -1938,4 +1938,32 @@ mod tests {
             self::panic!("Expected for expression, got: {:?}", program[0])
         }
     }
+
+    #[test]
+    fn test_block_statement() {
+        let code = r#"
+            {
+                let add = 10;
+                let b = 20;
+            }
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Block(BlockStatement { statements }) = &program[0].val {
+            assert!(
+                statements.len() == 2,
+                "Expected block to hava 2 statements, got: {}",
+                statements.len()
+            );
+        } else {
+            self::panic!("Expected block statement, got: {:?}", program[0].val)
+        }
+    }
 }
