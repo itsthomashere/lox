@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{write, Display};
 
 use crate::token::{positions::WithSpan, TokenKind};
 
@@ -461,22 +461,53 @@ impl Display for UnaryOperator {
 
 impl Display for LetStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(
+            f,
+            "let {} = {};",
+            self.identifier.val,
+            self.initializer
+                .clone()
+                .unwrap_or(WithSpan::empty(Expression::Nil))
+                .val
+        )
     }
 }
 impl Display for BlockStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let mut output = String::new();
+        output.push_str("{\n");
+        for i in &self.statements {
+            output.push_str(&format!("{}", i.val))
+        }
+        output.push_str("};");
+        write!(f, "{}", output)
     }
 }
 impl Display for FunctionStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let mut param = String::new();
+        param.push('(');
+        for i in &self.parameters {
+            param.push_str(&format!("{}, ", i))
+        }
+        param.push(')');
+        write!(
+            f,
+            "fun {}{} {};",
+            self.identifier.val, param, self.statement.val
+        )
     }
 }
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(
+            f,
+            "return {};",
+            self.return_value
+                .clone()
+                .unwrap_or(WithSpan::empty(Expression::Nil))
+                .val
+        )
     }
 }
 impl Display for GroupingExpression {
