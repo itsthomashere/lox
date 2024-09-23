@@ -5,10 +5,10 @@ pub mod ast;
 pub(crate) mod precedence;
 use ast::{
     AssignExpression, BinaryExpression, BinaryOperator, BlockStatement, CallExpression,
-    ClassStatement, Expression, ExtendsExpression, FunctionStatement, GroupingExpression,
-    IfExpression, IndexExpression, LetStatement, ListExpression, LogicalExpression,
-    LogicalOperator, PropertyExpression, ReturnStatement, Statement, SuperExpression,
-    UnaryExpression, UnaryOperator, WhileExpression,
+    ClassStatement, Expression, ExtendsExpression, ForExpression, FunctionStatement,
+    GroupingExpression, IfExpression, IndexExpression, LetStatement, ListExpression,
+    LogicalExpression, LogicalOperator, PropertyExpression, ReturnStatement, Statement,
+    SuperExpression, UnaryExpression, UnaryOperator, WhileExpression,
 };
 use precedence::Precedence;
 
@@ -219,6 +219,7 @@ impl Parser {
         let mut end: WithSpan<Token> = EOF_TOKEN;
 
         while let Some(token) = self.peek_token() {
+            println!("{:?}", token);
             if Into::<TokenKind>::into(&token.val) == TokenKind::RBrace
                 || Into::<TokenKind>::into(&token.val) == TokenKind::Eof
             {
@@ -418,7 +419,36 @@ impl Parser {
     }
 
     fn parse_for_expression(&mut self) -> Option<WithSpan<Expression>> {
-        None
+        let for_token = self
+            .next()
+            .expect("Should only be called if next token is for token");
+
+        self.expect_next(TokenKind::LParen)?;
+        let initializer = match self.parse_let_statement() {
+            Some(let_statement) => Box::new(let_statement),
+            None => {
+                self.errors("Expected let statement, got <none>", for_token.span);
+                return None;
+            }
+        };
+        let condition = Box::new(self.parse_expression(Precedence::None)?);
+        self.expect_next(TokenKind::Semicolon)?;
+
+        let assignment = Box::new(self.parse_expression(Precedence::None)?);
+        self.expect_next(TokenKind::RParen)?;
+
+        let consequence = Box::new(self.parse_block_statement()?);
+
+        let span = Span::union(&for_token, &consequence);
+
+        let for_expression = ForExpression {
+            initializer,
+            condition,
+            assignment,
+            consequence,
+        };
+
+        Some(WithSpan::new(Expression::For(for_expression), span))
     }
 
     fn parse_unary(&mut self) -> Option<WithSpan<Expression>> {
@@ -951,7 +981,7 @@ mod tests {
     #[test]
     fn test_class_statement_without_extends() {
         let code = r#"
-            class Thomas  {
+            class Thomas {
             };
         "#;
 
@@ -1856,6 +1886,56 @@ mod tests {
             );
         } else {
             self::panic!("Expected property expression, got: {:?}", program[0].val)
+        }
+    }
+
+    #[test]
+    fn test_for_expression() {
+        let code = r#"
+            for (let x = 0; x < 10; x = x + 1) {
+                add(x);
+            };
+        "#;
+
+        let mut parser = Parser::from_code(code);
+        let program = parser.parse_program();
+        assert!(
+            parser.get_errors().is_empty(),
+            "Expected progarm to have no errors, but got: {} instead",
+            parser.get_errors().len()
+        );
+
+        if let Statement::Expression(WithSpan {
+            val:
+                Expression::For(ForExpression {
+                    initializer,
+                    condition,
+                    assignment,
+                    consequence,
+                }),
+            ..
+        }) = &program[0].val
+        {
+            assert!(
+                matches!(initializer.val, Statement::Let(_)),
+                "Expected initializer to be let statement, got: {:?}",
+                initializer.val
+            );
+
+            assert!(
+                matches!(condition.val, Expression::Binary(_)),
+                "Expected condition to be binary expression, got: {:?}",
+                condition.val
+            );
+
+            assert!(
+                matches!(assignment.val, Expression::Assign(_)),
+                "Expected assignment to be assign expression, got: {:?}",
+                assignment.val
+            );
+            assert!(matches!(consequence.val, Statement::Block(_)))
+        } else {
+            self::panic!("Expected for expression, got: {:?}", program[0])
         }
     }
 }

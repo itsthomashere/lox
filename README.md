@@ -230,7 +230,7 @@ We can inherit from other class using the `extends` keyword. We can also overrid
 class Dog extends Cat {
     drink;
     init(age, name, drink) {
-        super(age, name);
+        super.init(age, name);
         this.drink = drink;
     }
 }

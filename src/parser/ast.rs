@@ -106,7 +106,9 @@ pub struct ExtendsExpression {
 /// * `consequence`: [TODO:parameter]
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForExpression {
+    pub initializer: Box<WithSpan<Statement>>,
     pub condition: Box<WithSpan<Expression>>,
+    pub assignment: Box<WithSpan<Expression>>,
     pub consequence: Box<WithSpan<Statement>>,
 }
 
