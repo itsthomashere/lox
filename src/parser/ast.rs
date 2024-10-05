@@ -1,5 +1,3 @@
-use std::fmt::{write, Display};
-
 use crate::token::{positions::WithSpan, TokenKind};
 
 #[derive(Debug, Clone, PartialEq)]

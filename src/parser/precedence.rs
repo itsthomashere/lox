@@ -13,6 +13,7 @@ pub enum Precedence {
     Unary,
     Call,
     Index,
+    #[allow(unused)]
     Primary,
 }
 

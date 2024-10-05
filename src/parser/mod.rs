@@ -30,6 +30,7 @@ pub struct Parser {
 }
 
 impl Parser {
+    #[allow(unused)] // we have some optional methods for now...
     pub fn from_code(code: &str) -> Self {
         let errors = Vec::default();
         let tokens_iter = Lexer::new(code).lex_with_context().into_iter().peekable();
@@ -41,6 +42,7 @@ impl Parser {
         }
     }
 
+    #[allow(unused)]
     pub fn from_token_span(token_span: Vec<WithSpan<Token>>) -> Self {
         Self {
             tokens_iter: token_span.into_iter().peekable(),
@@ -49,6 +51,7 @@ impl Parser {
         }
     }
 
+    #[allow(unused)]
     pub fn from_lexer(mut lexer: Lexer) -> Self {
         Self {
             tokens_iter: lexer.lex_with_context().into_iter().peekable(),
@@ -94,6 +97,7 @@ impl Parser {
         })
     }
 
+    #[allow(unused)]
     pub fn get_errors(&self) -> Vec<Diagnostic> {
         self.errors.clone()
     }
