@@ -193,25 +193,25 @@ pub struct SuperExpression {
 }
 
 /// An index expression takes this represtation
-///```text
-///         a[(1 + 2)]
-///         ^- - -^- - - - -
-///         |              |
-/// identifier expression  |
-///                  Index expression
-///```
-///Or it could takes more complex format like this
-///```text
-///         fun add(a,b) {return [a,b];};
-///         fun minus(a,b) {return a - b;};
-///
-///         add(3,4)[minus(4,3)];
-///            ^- - - - ^ - - - - -
-///            |                  |
-/// function call as expression   |
-///                 function call as index expression
-///
-///```      
+///    ```text
+///             a[(1 + 2)]
+///             ^- - -^- - - - -
+///             |              |
+///     identifier expression  |
+///                      Index expression
+///    ```
+///    Or it could takes more complex format like this
+///    ```text
+///             fun add(a,b) {return [a,b];};
+///             fun minus(a,b) {return a - b;};
+///    
+///             add(3,4)[minus(4,3)];
+///                ^- - - - ^ - - - - -
+///                |                  |
+///     function call as expression   |
+///                     function call as index expression
+///    
+///    ```      
 ///
 /// * `left`: Identifer or expression identifier
 /// * `index`: Index expression

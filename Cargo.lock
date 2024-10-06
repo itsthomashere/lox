@@ -3,5 +3,12 @@
 version = 3
 
 [[package]]
+name = "lox-evaluator"
+version = "0.1.0"
+dependencies = [
+ "lox-tokenizer",
+]
+
+[[package]]
 name = "lox-tokenizer"
 version = "0.1.0"
