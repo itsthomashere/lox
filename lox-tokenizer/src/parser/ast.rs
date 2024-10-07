@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::token::{positions::WithSpan, TokenKind};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -193,15 +195,14 @@ pub struct SuperExpression {
 }
 
 /// An index expression takes this represtation
-///    ```text
+///    ```
 ///             a[(1 + 2)]
 ///             ^- - -^- - - - -
 ///             |              |
 ///     identifier expression  |
 ///                      Index expression
-///    ```
-///    Or it could takes more complex format like this
-///    ```text
+///
+///    // Or it could takes more complex format like this
 ///             fun add(a,b) {return [a,b];};
 ///             fun minus(a,b) {return a - b;};
 ///    
@@ -210,8 +211,7 @@ pub struct SuperExpression {
 ///                |                  |
 ///     function call as expression   |
 ///                     function call as index expression
-///    
-///    ```      
+///    ```
 ///
 /// * `left`: Identifer or expression identifier
 /// * `index`: Index expression
@@ -381,5 +381,254 @@ impl TryFrom<TokenKind> for LogicalOperator {
             TokenKind::Or => Ok(Self::Or),
             _ => Err(format!("Could not convert {} to logical operator", value)),
         }
+    }
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::Let(let_stm) => write!(f, "{}", let_stm),
+            Statement::Return(return_stm) => write!(f, "{}", return_stm),
+            Statement::Expression(expression_stm) => write!(f, "{}", expression_stm),
+            Statement::Block(block_stm) => write!(f, "{}", block_stm),
+            Statement::Function(function_stm) => write!(f, "{}", function_stm),
+            Statement::Class(class_stm) => write!(f, "{}", class_stm),
+        }
+    }
+}
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::Identifier(identifier_expr) => write!(f, "{}", identifier_expr),
+            Expression::Number(number_expr) => write!(f, "{}", number_expr),
+            Expression::String(string_expr) => write!(f, "{}", string_expr),
+            Expression::Boolean(boolean_expr) => write!(f, "{}", boolean_expr),
+            Expression::Nil => write!(f, "nil"),
+            Expression::This => write!(f, "this"),
+            Expression::If(if_expr) => write!(f, "{}", if_expr),
+            Expression::For(for_expr) => write!(f, "{}", for_expr),
+            Expression::While(while_expr) => write!(f, "{}", while_expr),
+            Expression::Super(super_expr) => write!(f, "{}", super_expr),
+            Expression::Unary(unary_expr) => write!(f, "{}", unary_expr),
+            Expression::Logical(logical_expr) => write!(f, "{}", logical_expr),
+            Expression::Binary(binary_expr) => write!(f, "{}", binary_expr),
+            Expression::Assign(assign_expr) => write!(f, "{}", assign_expr),
+            Expression::Call(call_expr) => write!(f, "{}", call_expr),
+            Expression::Index(index_expr) => write!(f, "{}", index_expr),
+            Expression::Extends(extends_expr) => write!(f, "{}", extends_expr),
+            Expression::Property(property_expr) => write!(f, "{}", property_expr),
+            Expression::Grouping(grouping_expr) => write!(f, "{}", grouping_expr),
+            Expression::List(list_expr) => write!(f, "{}", list_expr),
+        }
+    }
+}
+
+impl Display for LetStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let identifier = format!("{}", self.identifier);
+
+        let mut initializer = String::new();
+        if self.initializer.is_some() {
+            initializer += &format!(" = {}", self.initializer.clone().unwrap());
+        }
+        write!(f, "let {}{};", identifier, initializer)
+    }
+}
+
+impl Display for ReturnStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let return_val = match &self.return_value {
+            Some(val) => format!("{}", val),
+            None => "".to_string(),
+        };
+
+        write!(f, "return {};", return_val)
+    }
+}
+
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut block = String::from("{\n");
+        for i in &self.statements {
+            block.push_str(&format!("{}\n", i));
+        }
+        block.push('}');
+
+        write!(f, "{}", block)
+    }
+}
+
+impl Display for FunctionStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let identifier = format!("{}", self.identifier);
+        let mut parameters = String::from("(");
+
+        for i in &self.parameters {
+            parameters.push_str(&format!("{},", i))
+        }
+        parameters.pop();
+        parameters.push(')');
+        let block = format!("{}", self.statement);
+
+        write!(f, "function {identifier}{parameters} {block}")
+    }
+}
+
+impl Display for ClassStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let identifier = format!("{}", self.identifier);
+        let extends = match &self.extends {
+            Some(extends) => format!("{} ", extends),
+            _ => "".to_string(),
+        };
+        let block = format!("{}", self.body);
+
+        write!(f, "class {identifier} {extends}{block}")
+    }
+}
+
+impl Display for IfExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let condition = format!("({})", self.condition);
+        let consequence = format!("{}", self.consequence);
+        let alternative = match &self.alternative {
+            Some(alternative) => format!("else {}", alternative),
+            None => "".to_string(),
+        };
+
+        write!(f, "if {condition} {consequence} {alternative}")
+    }
+}
+
+impl Display for ForExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "if ({}, {}, {}) {}",
+            self.initializer, self.condition, self.assignment, self.consequence
+        )
+    }
+}
+
+impl Display for WhileExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "while({}) {}", self.condition, self.consequence)
+    }
+}
+
+impl Display for SuperExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "super.{}()", self.identifier)
+    }
+}
+
+impl Display for UnaryOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnaryOperator::Bang => write!(f, "!"),
+            UnaryOperator::Minus => write!(f, "-"),
+        }
+    }
+}
+
+impl Display for LogicalOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogicalOperator::And => write!(f, "&&"),
+            LogicalOperator::Or => write!(f, "||"),
+        }
+    }
+}
+
+impl Display for BinaryOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOperator::Plus => write!(f, "+"),
+            BinaryOperator::Minus => write!(f, "-"),
+            BinaryOperator::Product => write!(f, "+"),
+            BinaryOperator::Divide => write!(f, "/"),
+            BinaryOperator::Equal => write!(f, "=="),
+            BinaryOperator::NotEqual => write!(f, "!="),
+            BinaryOperator::Less => write!(f, "<"),
+            BinaryOperator::LessEqual => write!(f, "<="),
+            BinaryOperator::Greater => write!(f, ">"),
+            BinaryOperator::GreaterEqual => write!(f, ">="),
+        }
+    }
+}
+
+impl Display for UnaryExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.operator, self.expression)
+    }
+}
+
+impl Display for BinaryExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {}", self.left, self.operator, self.right)
+    }
+}
+
+impl Display for LogicalExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {}", self.left, self.operator, self.right)
+    }
+}
+
+impl Display for AssignExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} = {}", self.left, self.right)
+    }
+}
+
+impl Display for IndexExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}[{}]", self.left, self.index)
+    }
+}
+
+impl Display for GroupingExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({})", self.expression)
+    }
+}
+
+impl Display for CallExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut arguments = String::from("(");
+
+        for i in &self.arguments {
+            arguments.push_str(&format!("{},", i));
+        }
+        arguments.pop();
+        arguments.push(')');
+
+        write!(f, "{}{}", self.function, arguments)
+    }
+}
+
+impl Display for ExtendsExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "extends {}", self.child)
+    }
+}
+
+impl Display for ListExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut list = String::from("[");
+
+        for i in &self.elements {
+            list.push_str(&format!("{},", i));
+        }
+        list.pop();
+        list.push(']');
+
+        write!(f, "{list}")
+    }
+}
+
+impl Display for PropertyExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.identifier, self.property)
     }
 }

@@ -125,3 +125,13 @@ where
         )
     }
 }
+
+impl Display for Diagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "<{}:{}>: {}",
+            self.span.start.0, self.span.end.0, self.message
+        )
+    }
+}
